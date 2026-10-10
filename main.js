@@ -42,7 +42,8 @@ const I18N = {
     backgroundPhoto: "Foto seçimi",
     backgroundVideo: "Video seçimi",
     settingsHint: "↑↓ alan seç • ←→ değiştir • OK kaydet",
-    language: "Dil"
+    language: "Dil",
+    musicTrack: "Müzik seçimi"
   },
   en: {
     warning: "Warning",
@@ -70,7 +71,8 @@ const I18N = {
     backgroundPhoto: "Photo selection",
     backgroundVideo: "Video selection",
     settingsHint: "↑↓ select field • ←→ change • OK save",
-    language: "Language"
+    language: "Language",
+    musicTrack: "Music selection"
   }
 };
 
@@ -218,6 +220,19 @@ const EN_DYNAMIC = {
 
 const WEATHER_REFRESH_OPTIONS = [5, 10, 15, 30];
 
+// Settings rows, in panel order. Kept in one place because adjustSetting
+// and the up/down wraparound both index into it.
+const SETTING_ROWS = [
+  "settingVolume",
+  "settingMusicTrack",
+  "settingRefresh",
+  "settingBackgroundMode",
+  "settingBackgroundImage",
+  "settingBackgroundVideo",
+  "settingLanguage"
+];
+const SETTING_ROW_COUNT = SETTING_ROWS.length;
+
 const LANGUAGE_STORAGE_KEY = "tvDashboardLanguage";
 
 const SPEED_TEST = {
@@ -244,6 +259,7 @@ const IP_LOCATION = {
 const MEDIA = {
   backgroundVideoFile: "bg.mp4",
   backgroundImageFile: "bg.jpg",
+  musicFile: "music-tv.mp3",
   musicVolume: 0.35,
   musicTitle: "Windows XP Installation Music"
 };
@@ -300,10 +316,12 @@ const runtimeIntervals = {
 const elementCache = {};
 const backgroundLibrary = {
   images: [{ file: MEDIA.backgroundImageFile, label: MEDIA.backgroundImageFile }],
-  videos: [{ file: MEDIA.backgroundVideoFile, label: MEDIA.backgroundVideoFile }]
+  videos: [{ file: MEDIA.backgroundVideoFile, label: MEDIA.backgroundVideoFile }],
+  tracks: [{ file: MEDIA.musicFile, label: MEDIA.musicFile }]
 };
 let settings = {
   musicVolume: 35,
+  musicIndex: 0,
   refreshIndex: 1,
   backgroundMode: "video",
   backgroundImageIndex: 0,
@@ -783,6 +801,30 @@ function clampBackgroundIndex(kind, value) {
   return Math.max(0, Math.min(entries.length - 1, Math.round(numeric)));
 }
 
+function clampMusicIndex(value) {
+  const numeric = Number(value);
+  if (!isFinite(numeric)) return 0;
+  if (!backgroundScanComplete) return Math.max(0, Math.round(numeric));
+  if (!backgroundLibrary.tracks.length) return 0;
+  return Math.max(0, Math.min(backgroundLibrary.tracks.length - 1, Math.round(numeric)));
+}
+
+function getMusicEntry(index) {
+  const tracks = backgroundLibrary.tracks;
+  if (!tracks.length) return { file: MEDIA.musicFile, label: MEDIA.musicFile };
+  const numeric = Number(index);
+  if (!isFinite(numeric)) return tracks[0];
+  const wrapped = ((Math.round(numeric) % tracks.length) + tracks.length) % tracks.length;
+  return tracks[wrapped];
+}
+
+function getMusicOptionValue(index) {
+  const tracks = backgroundLibrary.tracks;
+  const entry = getMusicEntry(index);
+  if (tracks.length <= 1) return entry.label;
+  return entry.label + " (" + (clampMusicIndex(index) + 1) + "/" + tracks.length + ")";
+}
+
 function getBackgroundModeLabel(mode) {
   if (currentLanguage === "en") return mode === "video" ? "Video" : "Photo";
   return mode === "video" ? "Video" : "Foto";
@@ -827,6 +869,13 @@ function sortBackgroundEntries(entries) {
   });
 }
 
+// Music files sort by name, numbers included: "music2" before "music10".
+function sortMusicEntries(entries) {
+  return entries.sort(function (left, right) {
+    return String(left.file).localeCompare(String(right.file), "en", { numeric: true });
+  });
+}
+
 function clonePackagedBackgroundMedia() {
   return {
     images: PACKAGED_BACKGROUND_MEDIA.images.map(function (entry) {
@@ -834,7 +883,8 @@ function clonePackagedBackgroundMedia() {
     }),
     videos: PACKAGED_BACKGROUND_MEDIA.videos.map(function (entry) {
       return { file: entry.file, label: entry.label };
-    })
+    }),
+    tracks: [{ file: MEDIA.musicFile, label: MEDIA.musicFile }]
   };
 }
 
@@ -860,11 +910,12 @@ function scanPackagedBackgroundMedia() {
         directory.listFiles(function (files) {
           const images = [];
           const videos = [];
+          const tracks = [];
 
           files.forEach(function (file) {
             if (!file || file.isDirectory) return;
             const name = String(file.name || "");
-            if (!/^bg\d*\./i.test(name)) return;
+            if (!/^bg\d*\./i.test(name) && !/^music/i.test(name)) return;
 
             let uri = name;
             try {
@@ -872,13 +923,19 @@ function scanPackagedBackgroundMedia() {
             } catch (e) {}
 
             const entry = { file: name, label: name, uri: uri };
-            if (/\.(?:jpg|jpeg|png|webp)$/i.test(name)) images.push(entry);
-            if (/\.mp4$/i.test(name)) videos.push(entry);
+            if (/^bg\d*\./i.test(name)) {
+              if (/\.(?:jpg|jpeg|png|webp)$/i.test(name)) images.push(entry);
+              if (/\.mp4$/i.test(name)) videos.push(entry);
+            }
+            if (/^music.*\.(?:mp3|m4a|aac|ogg|wav)$/i.test(name)) {
+              tracks.push(entry);
+            }
           });
 
           finish({
             images: sortBackgroundEntries(images),
-            videos: sortBackgroundEntries(videos)
+            videos: sortBackgroundEntries(videos),
+            tracks: sortMusicEntries(tracks)
           });
         }, function () { finish(null); });
       }, function () { finish(null); }, "r");
@@ -1191,11 +1248,13 @@ async function scanBackgroundMedia() {
     const packagedMedia = await scanPackagedBackgroundMedia() || clonePackagedBackgroundMedia();
     const images = packagedMedia.images;
     const videos = packagedMedia.videos;
+    const tracks = packagedMedia.tracks;
 
     backgroundLibrary.images = images.length
       ? images
       : [{ file: MEDIA.backgroundImageFile, label: MEDIA.backgroundImageFile }];
     backgroundLibrary.videos = videos;
+    backgroundLibrary.tracks = tracks.length ? tracks : clonePackagedBackgroundMedia().tracks;
     backgroundScanComplete = true;
 
     settings = normalizeSettings(settings);
@@ -1203,6 +1262,7 @@ async function scanBackgroundMedia() {
 
     applyDashboardSettings(settingsDraft || settings);
     applyBackgroundSelection(settingsDraft || settings);
+    applyMusicSelection(settingsDraft || settings);
     if (settingsOpen) renderSettingsPanel();
   })().finally(function () {
     backgroundScanPromise = null;
@@ -2225,7 +2285,7 @@ function updateMusicStatus() {
     const errorMessages = {
       1: "Oynatma iptal edildi",
       2: "Ses dosyası okunamadı",
-      3: "MP3 sesi çözülemedi",
+      3: "Ses çözülemedi",
       4: "Ses biçimi desteklenmiyor"
     };
     setStatus("musicStatus", "Müzik hatası", "bad");
@@ -2237,13 +2297,59 @@ function updateMusicStatus() {
     setStatus("musicStatus", "Duraklatıldı", "warn");
     setText("musicDetail", "OK: devam et");
   } else {
-    const source = (audio.currentSrc || "music-tv.mp3").split("/").pop();
+    const source = (audio.currentSrc || MEDIA.musicFile).split("/").pop();
     setStatus("musicStatus", "Çalıyor", "ok");
     setText("musicDetail", source + " • OK: duraklat");
   }
 
+  setText("musicTitle", getMusicEntry(settings.musicIndex).label);
   updateMusicProgress();
   updateMediaScreenSaver();
+}
+
+// Points the audio element at the selected track. Playback state is carried
+// across the switch, so changing the track mid-song keeps playing.
+function applyMusicSelection(source) {
+  const audio = getEl("bgMusic");
+  if (!audio) return;
+
+  const values = source || settings;
+  const entry = getMusicEntry(values.musicIndex);
+  const nextSrc = entry.uri || entry.file;
+  if (!nextSrc) return;
+
+  const currentSrc = String(audio.getAttribute("src") || "");
+  if (currentSrc && currentSrc.split("/").pop() === String(nextSrc).split("/").pop()) {
+    updateMusicStatus();
+    return;
+  }
+
+  const wasPlaying = !audio.paused;
+  const volume = audio.volume;
+  const at = audio.currentTime;
+
+  try {
+    audio.setAttribute("src", nextSrc);
+    audio.volume = volume;
+    audio.load();
+  } catch (e) {
+    return;
+  }
+
+  if (wasPlaying) {
+    try {
+      const playResult = audio.play();
+      if (playResult && typeof playResult.then === "function") {
+        playResult.then(function () {
+          if (at) audio.currentTime = at;
+        }).catch(showMusicPlayError);
+      }
+    } catch (e) {
+      showMusicPlayError(e);
+    }
+  }
+
+  updateMusicStatus();
 }
 
 function showMusicPlayError(error) {
@@ -2344,6 +2450,7 @@ function normalizeSettings(source) {
 
   return {
     musicVolume: Math.max(5, Math.min(100, Number(normalized.musicVolume) || 35)),
+    musicIndex: clampMusicIndex(normalized.musicIndex),
     language: normalized.language === "en" ? "en" : "tr",
     refreshIndex: Math.max(
       0,
@@ -2365,6 +2472,7 @@ function loadDashboardSettings() {
 
   applyDashboardSettings(settings);
   applyBackgroundSelection(settings);
+  applyMusicSelection(settings);
 }
 
 function saveDashboardSettings() {
@@ -2402,6 +2510,7 @@ function applyDashboardSettings(source) {
   }
 
   setText("settingVolumeValue", "%" + values.musicVolume);
+  setText("settingMusicTrackValue", getMusicOptionValue(values.musicIndex));
   setText(
     "settingRefreshValue",
     WEATHER_REFRESH_OPTIONS[values.refreshIndex] + " dakika"
@@ -2422,15 +2531,7 @@ function scheduleWeatherUpdates() {
 }
 
 function renderSettingsPanel() {
-  const rows = [
-    "settingVolume",
-    "settingRefresh",
-    "settingBackgroundMode",
-    "settingBackgroundImage",
-    "settingBackgroundVideo",
-    "settingLanguage"
-  ];
-  rows.forEach(function (id, index) {
+  SETTING_ROWS.forEach(function (id, index) {
     const row = getEl(id);
     if (row) row.classList.toggle("activeSetting", index === activeSettingIndex);
   });
@@ -2460,12 +2561,14 @@ function closeSettings(saveChanges) {
     applyLanguage(settings.language);
     applyDashboardSettings(settings);
     applyBackgroundSelection(settings);
+    applyMusicSelection(settings);
     scheduleWeatherUpdates();
     updateWeather();
     updateFooter("Ayarlar kaydedildi");
   } else {
     applyDashboardSettings(settings);
     applyBackgroundSelection(settings);
+    applyMusicSelection(settings);
     updateFooter("Ayar değişiklikleri iptal edildi");
   }
 
@@ -2478,33 +2581,37 @@ function closeSettings(saveChanges) {
 
 function adjustSetting(direction) {
   if (!settingsDraft) return;
-  const backgroundChanged = activeSettingIndex >= 2;
+  const backgroundChanged = activeSettingIndex >= 3;
 
   if (activeSettingIndex === 0) {
     settingsDraft.musicVolume = Math.max(
       5,
       Math.min(100, settingsDraft.musicVolume + direction * 5)
     );
-  } else if (activeSettingIndex === 1) {
+  } else if (activeSettingIndex === 1 && backgroundLibrary.tracks.length) {
+    settingsDraft.musicIndex =
+      (settingsDraft.musicIndex + direction + backgroundLibrary.tracks.length) %
+      backgroundLibrary.tracks.length;
+  } else if (activeSettingIndex === 2) {
     settingsDraft.refreshIndex =
       (settingsDraft.refreshIndex + direction + WEATHER_REFRESH_OPTIONS.length) %
       WEATHER_REFRESH_OPTIONS.length;
-  } else if (activeSettingIndex === 2) {
+  } else if (activeSettingIndex === 3) {
     settingsDraft.backgroundMode =
       settingsDraft.backgroundMode === "video" && backgroundLibrary.images.length
         ? "image"
         : backgroundLibrary.videos.length
           ? "video"
           : "image";
-  } else if (activeSettingIndex === 3 && backgroundLibrary.images.length) {
+  } else if (activeSettingIndex === 4 && backgroundLibrary.images.length) {
     settingsDraft.backgroundImageIndex =
       (settingsDraft.backgroundImageIndex + direction + backgroundLibrary.images.length) %
       backgroundLibrary.images.length;
-  } else if (activeSettingIndex === 4 && backgroundLibrary.videos.length) {
+  } else if (activeSettingIndex === 5 && backgroundLibrary.videos.length) {
     settingsDraft.backgroundVideoIndex =
       (settingsDraft.backgroundVideoIndex + direction + backgroundLibrary.videos.length) %
       backgroundLibrary.videos.length;
-  } else if (activeSettingIndex === 5) {
+  } else if (activeSettingIndex === 6) {
     settingsDraft.language = settingsDraft.language === "en" ? "tr" : "en";
   }
 
@@ -2516,7 +2623,7 @@ function handleSettingsKey(key) {
   if (key === 38 || key === 40) {
     activeSettingIndex += key === 40 ? 1 : -1;
     activeSettingIndex =
-      (activeSettingIndex + 6) % 6;
+      (activeSettingIndex + SETTING_ROW_COUNT) % SETTING_ROW_COUNT;
     renderSettingsPanel();
     return true;
   }
