@@ -386,7 +386,7 @@ body.weather-clear:not(.time-night)::before {
   width: 0;
   height: 100%;
   border-radius: inherit;
-  background: #b9ffcf;
+  background: linear-gradient(90deg, var(--accent), var(--accent-soft));
   transition: none;
 }
 
@@ -443,7 +443,7 @@ body.weather-clear:not(.time-night)::before {
   width: 0;
   height: 100%;
   border-radius: inherit;
-  background: #8ed9ff;
+  background: linear-gradient(90deg, var(--accent), var(--accent-soft));
   transition: none;
 }
 
