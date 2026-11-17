@@ -198,23 +198,36 @@ Packaged media is scanned with `tizen.filesystem.resolve("wgt-package")`
 (`scanPackagedMedia`). Files matching the `bg` prefix are collected as
 images and videos; when the scan fails, the built-in list is used.
 
-Videos are 1920x1080 at 30 fps, H.264, audio stripped. See the commit
-history for the re-encode that reduced media size from 193 MB to 48 MB.
+Videos are 1920x1080 at 30 fps, H.264, audio stripped. The original 193 MB
+set was re-encoded down to the current ~20 MB including music.
 
 ## Development tools
 
+All checks are plain Node scripts with no dependencies. Run them before
+committing:
+
 ```bash
-node tools/smoke.mjs            # boots the app in a stubbed Tizen environment
-node tools/check-i18n.mjs       # EN translations for setText/setStatus strings
-node tools/check-html-i18n.mjs  # untranslated Turkish text in index.html
-node tools/check-css.mjs        # undefined and unused CSS classes
+node tools/smoke.mjs             # boots the app against a DOM/Tizen stub, exercises remote keys
+node tools/check-i18n.mjs        # EN coverage for literals + mojibake scan
+node tools/check-html-i18n.mjs   # untranslated Turkish text in index.html
+node tools/check-css.mjs         # undefined and unused CSS classes
+node tools/check-installing.mjs  # INSTALLING.md claims vs. manifest and files
+node tools/check-links.mjs       # relative links and asset paths
+node tools/check-location.mjs    # IP-only location flow
+node tools/check-media-docs.mjs  # media scan rules vs. README
+node tools/check-metadata.mjs bg.mp4 icon.png  # embedded metadata in media
+node tools/check-music.mjs       # music selection flow
+node tools/check-version.mjs     # version agreement across manifest, HTML and JS
+node tools/find-unused-media.mjs # packaged files not referenced anywhere
+node tools/scan-secrets.mjs      # secrets/PII across all commits (text files only)
 ```
 
-Run all four before committing. `check-i18n.mjs` collects the Turkish
-literals passed to `setText`/`setStatus` and reports the ones missing from
-`EN_DYNAMIC`; missing entries silently stay Turkish in EN mode.
-`smoke.mjs` parses `main.js`, runs `boot()`, and checks for references to
-removed functions and for element ids that no longer exist in the HTML.
+`check-i18n.mjs` collects the Turkish literals passed to `setText`,
+`setStatus` and `updateFooter`, reports the ones missing from `EN_DYNAMIC`,
+and also fails on mojibake such as `artÄ±rÄ±ldÄ±`. `smoke.mjs` parses
+`main.js`, runs `boot()` with a stubbed DOM, exercises the language/settings
+and remote-key flows, and checks for references to removed functions and for
+element ids that no longer exist in the HTML.
 
 ## Security
 
@@ -225,7 +238,9 @@ removed functions and for element ids that no longer exist in the HTML.
 certificate.
 
 Without that certificate the app only runs on TVs with unsigned installation
-enabled; use your own certificate for Samsung Store distribution.
+enabled; use your own certificate for Samsung Store distribution. The widget
+`id` in `config.xml` uses a local domain for sideloading; replace it with a
+domain you own before submitting to the store.
 
 ## Directory layout
 

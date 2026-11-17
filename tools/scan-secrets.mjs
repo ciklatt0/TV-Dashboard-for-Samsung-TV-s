@@ -1,5 +1,5 @@
-// Git deposunun TAMAMINI tarar: tum commit'ler, tum blob'lar, tum
-// dosyalar (metin ve binary).
+// Git deposunun TAMAMINI tarar: tum commit'ler, tum metin blob'lari.
+// Binary medya atlanir; rastgele baytlar sahte e-posta/IP eslesmesi uretir.
 //
 // Kapsam: IP adresleri (IPv4/IPv6), MAC, seri no, ana makine adlari,
 // yerel yollar, kimlik bilgileri.
@@ -41,7 +41,8 @@ const CHECKS = [
   { name: "MAC adresi", re: /\b(?:[0-9a-f]{2}:){5}[0-9a-f]{2}\b/gi },
   { name: "Windows yolu", re: /[A-Z]:\\(?:Users|Documents and Settings)[\\/][^\\/:*?"<>|\r\n]{2,60}/gi },
   { name: "Unix ev dizini", re: /(?:\/home\/|\/Users\/)[a-z0-9._-]{2,40}(?:\/[a-z0-9._-]{2,40})?/gi },
-  { name: "OneDrive", re: /OneDrive/gi },
+  // Bu araclarin kaynak kodunda "OneDrive" bir tarama deseni olarak geciyor.
+  { name: "OneDrive", re: /OneDrive/gi, skipFile: (label) => /(?:^|:)tools\//.test(label) },
   { name: "Kullanici adi (ev dizini)", re: /\bwindo\b/gi },
   { name: "E-posta", re: /\b[\w.+-]+@[\w-]+\.[\w.]{2,}\b/g, skip: (m) => /@(example|schema|tizen\.org|w3\.org|developer\.samsung|mozilla|github|user@host)/i.test(m) || /^[\w.+-]+@[\w-]+\.(com|org|net)$/i.test(m) === false && /tizen/i.test(m) },
   { name: "Ozel anahtar", re: /-----BEGIN[ A-Z]*PRIVATE KEY-----/g },
@@ -55,6 +56,15 @@ const combined = new RegExp(
   "g",
 );
 
+// Medya dosyalari (mp4/png/mp3) icindeki sifir baytlarla kolayca ayirt edilir.
+function isBinary(buf) {
+  const sample = buf.subarray(0, 8192);
+  for (const byte of sample) {
+    if (byte === 0) return true;
+  }
+  return false;
+}
+
 function scanBuffer(buf, label, hits) {
   const text = buf.toString("latin1");
   for (const m of text.matchAll(combined)) {
@@ -62,6 +72,7 @@ function scanBuffer(buf, label, hits) {
       const g = m.groups[`g${i}`];
       if (g === undefined) continue;
       if (CHECKS[i].skip && CHECKS[i].skip(g)) continue;
+      if (CHECKS[i].skipFile && CHECKS[i].skipFile(label)) continue;
       // Onceden bildigimiz guvenli degerler
       if (/^192\.168\.x\.x$/i.test(g)) continue;
       const key = CHECKS[i].name + "::" + g;
@@ -72,10 +83,11 @@ function scanBuffer(buf, label, hits) {
 }
 
 // --- Tum commit'leri tara ----------------------------------------------------
-console.log("Taraniyor: tum commit'ler x tum dosyalar...\n");
+console.log("Taraniyor: tum commit'ler x tum metin dosyalari...\n");
 const commits = git(["rev-list", "--all"]).trim().split("\n");
 const hits = new Map();
 let filesScanned = 0;
+let binariesSkipped = 0;
 
 for (const c of commits) {
   const files = git(["ls-tree", "-r", "--name-only", c]).trim().split("\n").filter(Boolean);
@@ -90,6 +102,10 @@ for (const c of commits) {
     } catch {
       continue;
     }
+    if (isBinary(buf)) {
+      binariesSkipped += 1;
+      continue;
+    }
     filesScanned += 1;
     scanBuffer(buf, `${c.slice(0, 7)}:${f}`, hits);
   }
@@ -98,12 +114,20 @@ for (const c of commits) {
 // --- Calisma agaci (commit'lenmemis) ----------------------------------------
 for (const f of git(["ls-files"]).trim().split("\n").filter(Boolean)) {
   try {
-    scanBuffer(readFileSync(`${repo}/${f}`), `WORKTREE:${f}`, hits);
+    const buf = readFileSync(`${repo}/${f}`);
+    if (isBinary(buf)) {
+      binariesSkipped += 1;
+      continue;
+    }
+    scanBuffer(buf, `WORKTREE:${f}`, hits);
     filesScanned += 1;
   } catch {}
 }
 
-console.log(`${commits.length} commit, ${filesScanned} blob tarandi.\n`);
+console.log(
+  `${commits.length} commit, ${filesScanned} metin blob'i tarandi` +
+  ` (${binariesSkipped} binary atlandi).\n`,
+);
 if (hits.size === 0) {
   console.log("SONUC: Hicbir gizli/IP/makine bilgisi bulunamadi.");
 } else {

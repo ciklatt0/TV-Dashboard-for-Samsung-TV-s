@@ -1,7 +1,6 @@
 "use strict";
 
 const APP_VERSION = "1.12.6";
-const LOW_POWER_MODE = true;
 
 const PERFORMANCE = {
   clockIntervalMs: 60 * 1000,
@@ -214,8 +213,7 @@ const EN_DYNAMIC = {
   // Interpolated values, e.g. "Mimari: " + architecture.
   "Tarayıcı ağ durumu": "Browser network state",
   "Mimari bilinmiyor": "Architecture unknown",
-  "Mimari: ": "Architecture: ",
-  "Tahmin yok": "No forecast"
+  "Mimari: ": "Architecture: "
 };
 
 const WEATHER_REFRESH_OPTIONS = [5, 10, 15, 30];
@@ -327,8 +325,6 @@ let settings = {
   backgroundImageIndex: 0,
   backgroundVideoIndex: 0
 };
-const cpuHistory = [];
-const ramHistory = [];
 const systemSnapshot = {
   cpu: null,
   ram: null,
@@ -582,45 +578,6 @@ function setMetricBar(id, percent) {
   el.classList.remove("warnFill", "badFill");
   if (safePercent >= 90) el.classList.add("badFill");
   else if (safePercent >= 75) el.classList.add("warnFill");
-}
-
-function pushHistory(history, value) {
-  if (typeof value !== "number" || !isFinite(value)) return;
-  history.push(clampPercent(value));
-  while (history.length > 12) history.shift();
-}
-
-function drawMetricGraph(id, history, color) {
-  if (LOW_POWER_MODE) return;
-  const canvas = getEl(id);
-  if (!canvas || !canvas.getContext) return;
-
-  const context = canvas.getContext("2d");
-  const width = canvas.width;
-  const height = canvas.height;
-  context.clearRect(0, 0, width, height);
-
-  context.strokeStyle = "rgba(255,255,255,0.10)";
-  context.lineWidth = 1;
-  context.beginPath();
-  context.moveTo(0, height - 1);
-  context.lineTo(width, height - 1);
-  context.stroke();
-
-  if (history.length < 2) return;
-
-  context.strokeStyle = color;
-  context.lineWidth = 2;
-  context.lineJoin = "round";
-  context.lineCap = "round";
-  context.beginPath();
-  history.forEach(function (value, index) {
-    const x = index * (width / (history.length - 1));
-    const y = height - 2 - (value / 100) * (height - 4);
-    if (index === 0) context.moveTo(x, y);
-    else context.lineTo(x, y);
-  });
-  context.stroke();
 }
 
 function updateHealthStatus() {
@@ -1634,8 +1591,6 @@ function updateResourceInfo() {
     tizen.systeminfo.getPropertyValue("CPU", function (cpu) {
       const load = clampPercent(cpu.load * 100);
       systemSnapshot.cpu = load;
-      pushHistory(cpuHistory, load);
-      drawMetricGraph("cpuGraph", cpuHistory, "#8ed9ff");
       setStatus("cpuValue", load + "%", load >= 90 ? "bad" : load >= 75 ? "warn" : "ok");
       setMetricBar("cpuBar", load);
       updateHealthStatus();
@@ -1653,8 +1608,6 @@ function updateResourceInfo() {
       ? ((totalMemory - availableMemory) / totalMemory) * 100
       : 0;
     systemSnapshot.ram = clampPercent(usedMemoryPercent);
-    pushHistory(ramHistory, usedMemoryPercent);
-    drawMetricGraph("ramGraph", ramHistory, "#b9ffcf");
     setText("ramValue", "Boş " + formatBytes(availableMemory) + " / " + formatBytes(totalMemory));
     setMetricBar("ramBar", usedMemoryPercent);
     updateHealthStatus();
@@ -1945,7 +1898,7 @@ function adjustTvVolume(direction) {
     }
 
     updateVolumeInfo();
-    updateFooter(direction > 0 ? "TV sesi artÄ±rÄ±ldÄ±" : "TV sesi azaltÄ±ldÄ±");
+    updateFooter(direction > 0 ? "TV sesi artırıldı" : "TV sesi azaltıldı");
     setTimeout(updateVolumeInfo, 300);
     setTimeout(updateVolumeInfo, 900);
     return true;
@@ -2034,15 +1987,22 @@ function updateWeatherAlert(code) {
 }
 
 function fetchWithTimeout(url, timeoutMs) {
+  // AbortController is not available on every Tizen web engine; fall back to
+  // the timer-only behaviour there. A cancelled request must not resolve or
+  // reject the promise twice: `finished` guards both paths.
+  const controller = typeof AbortController === "function" ? new AbortController() : null;
+  const init = controller ? { signal: controller.signal } : undefined;
+
   return new Promise(function (resolve, reject) {
     let finished = false;
     const timeoutId = setTimeout(function () {
       if (finished) return;
       finished = true;
+      if (controller) controller.abort();
       reject(new Error("Request timed out"));
     }, timeoutMs);
 
-    fetch(url).then(function (response) {
+    fetch(url, init).then(function (response) {
       if (finished) return;
       finished = true;
       clearTimeout(timeoutId);
