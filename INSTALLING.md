@@ -163,7 +163,7 @@ certificate is enough.
 Double-click `config.xml`. It identifies the app as:
 
 ```xml
-<widget id="https://example.com/tvdashboard" version="1.12.6">
+<widget id="https://example.com/tvdashboard" version="1.12.7">
     <tizen:application id="TVDashApp1.TVDashboard" package="TVDashApp1"
                        required_version="4.0"/>
     <tizen:profile name="tv-samsung"/>
@@ -334,9 +334,9 @@ The version string lives in **four places** and must be bumped together:
 
 | File | Where |
 |---|---|
-| `config.xml` | `<widget version="1.12.6">` |
-| `main.js` | `const APP_VERSION = "1.12.6";` |
-| `index.html` | `style.css?v=1.12.6` and `main.js?v=1.12.6` |
+| `config.xml` | `<widget version="1.12.7">` |
+| `main.js` | `const APP_VERSION = "1.12.7";` |
+| `index.html` | `style.css?v=1.12.7` and `main.js?v=1.12.7` |
 
 The `?v=` query strings are cache busters for the Tizen web engine, which
 caches aggressively. Without them an updated `main.js` may never load.
@@ -421,7 +421,7 @@ really reinstalled, not just relaunched.
 The app needs `$WEBAPIS/webapis/webapis.js` from the firmware, so it will
 not run in a desktop browser. Confirm the TV firmware is Tizen 4.0 or newer.
 
-**No weather, location or speed test**
+**No weather, location, speed test or YouTube**
 Every API must be listed in `config.xml` as an `<access origin="..."/>`
 entry, otherwise requests are blocked silently. Current origins:
 
@@ -430,9 +430,20 @@ https://api.open-meteo.com
 https://speed.cloudflare.com
 https://get.geojs.io
 https://ipwho.is
+https://api.piped.private.coffee
+https://piped.private.coffee
+https://workers.dev
+https://tvdash-youtube-relay.windows-destekleyeci.chatgpt.site
+https://youtube.com
+https://youtube-nocookie.com
+https://ytimg.com
+https://googlevideo.com
 ```
 
-Adding a new API means adding its origin there too.
+Adding a new API means adding its origin there too. The YouTube entries cover
+search (`api.piped.private.coffee`), the embed relay (`workers.dev` plus the
+backup relay), YouTube's own embed hosts and the video/thumbnail CDNs. See
+`youtube-relay/README.md` for deploying your own Cloudflare relay.
 
 ---
 

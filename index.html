@@ -6,7 +6,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>TV Dashboard</title>
 
-  <link rel="stylesheet" href="style.css?v=1.12.6" />
+  <link rel="stylesheet" href="style.css?v=1.12.7" />
 
   <!-- Samsung TV Product API -->
   <script type="text/javascript" src="$WEBAPIS/webapis/webapis.js"></script>
@@ -17,6 +17,8 @@
   <img id="bgImage" class="bgMedia" alt="" />
   <video id="bgVideo" class="bgMedia" muted autoplay loop playsinline preload="metadata" hidden></video>
   <object id="bgAvplay" class="bgMedia" type="application/avplayer" hidden></object>
+  <iframe id="youtubeBackground" class="bgMedia youtubeBackground" title="YouTube background" hidden
+          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
   
 
   <!-- Samsung TV için kapak görseli içermeyen, saf MP3 ses akışı. -->
@@ -109,6 +111,40 @@
         </div>
       </div>
 
+      <div class="youtubeColumn" aria-label="YouTube müzik">
+        <div class="card glass youtubePlayerCard" tabindex="0" data-testid="youtube-player-card">
+          <div class="youtubeCardHeader">
+            <div class="miniLabel">YouTube</div>
+            <strong id="youtubeStatus" class="warn">Müzik seçilmedi</strong>
+          </div>
+          <div class="youtubeViewport">
+            <img id="youtubePreview" class="youtubePreview" alt="" hidden />
+            <div id="youtubePlayer"></div>
+            <div id="youtubePlaceholder" class="youtubePlaceholder">
+              <span class="youtubeMark">▶</span>
+              <strong data-i18n="youtubeEmpty">YouTube'dan müzik seç</strong>
+              <small data-i18n="youtubeEmptyHint">Aşağıdaki arama kartına bas</small>
+            </div>
+          </div>
+          <div id="youtubeTitle" class="youtubeTitle">YouTube oynatıcı hazır</div>
+          <div id="youtubePlayerHint" class="youtubePlayerHint">OK: müzik değiştir • Play/Pause: oynat</div>
+        </div>
+
+        <div class="card glass youtubeSearchCard" tabindex="0" data-testid="youtube-search-card">
+          <div class="miniLabel" data-i18n="youtubeSearch">YouTube'da Ara</div>
+          <div id="youtubeSearchSummary" class="value">Müzik bul</div>
+          <div id="youtubeSearchDetail" class="subValue">OK: arama ekranını aç</div>
+        </div>
+
+        <div class="card glass youtubeMiniCard" tabindex="0" data-testid="youtube-mini-card">
+          <span class="youtubeMiniMark">▶</span>
+          <span class="youtubeMiniText">
+            <span class="miniLabel">YouTube</span>
+            <strong id="youtubeMiniTitle">Müzik seçilmedi</strong>
+          </span>
+          <span id="youtubeMiniAction" class="youtubeMiniAction">OK: değiştir</span>
+        </div>
+      </div>
       <div class="infoColumn infoColumnRight">
         <div class="card glass networkCard" tabindex="0">
           <div>
@@ -169,7 +205,7 @@
 
     <div class="footer">
       <span id="footerText">TV Dashboard hazır</span>
-      <span><span id="appVersion">v1.12.6</span> • <span id="lastUpdated">Henüz yenilenmedi</span></span>
+      <span><span id="appVersion">v1.12.7</span> • <span id="lastUpdated">Henüz yenilenmedi</span></span>
       <span data-i18n="footerHelp">Yön tuşları: gezin • OK: seç • Geri: çıkış</span>
     </div>
   </main>
@@ -201,6 +237,10 @@
         <span data-i18n="backgroundVideo">Video seçimi</span>
         <strong id="settingBackgroundVideoValue">bg.mp4</strong>
       </div>
+      <div id="settingYoutubeRelay" class="settingRow">
+        <span data-i18n="youtubeRelay">YouTube relay</span>
+        <strong id="settingYoutubeRelayValue">Otomatik</strong>
+      </div>
       <div id="settingLanguage" class="settingRow">
         <span data-i18n="language">Dil</span>
         <strong id="settingLanguageValue">Türkçe</strong>
@@ -211,6 +251,37 @@
 
   
 
+  <div id="youtubeOverlay" class="youtubeOverlay" hidden data-testid="youtube-overlay">
+    <div class="youtubePanel glass" role="dialog" aria-modal="true" aria-labelledby="youtubeOverlayTitle">
+      <div class="youtubeOverlayHeader">
+        <div>
+          <div id="youtubeOverlayTitle" class="youtubeOverlayTitle" data-i18n="youtubeSearch">YouTube'da Ara</div>
+          <div id="youtubeSearchHint" class="youtubeSearchHint">Video ara ve kapaktan seç</div>
+        </div>
+        <button id="youtubeCloseButton" class="youtubeSmallButton" type="button">Kapat</button>
+      </div>
+
+      <form id="youtubeSearchForm" class="youtubeSearchForm" data-testid="youtube-search-form">
+        <label for="youtubeSearchInput">Şarkı, sanatçı veya video ara</label>
+        <div class="youtubeInputRow">
+          <input id="youtubeSearchInput" type="search" autocomplete="off" spellcheck="false"
+                 data-testid="youtube-search-input" />
+          <button id="youtubeSearchButton" type="submit">Ara</button>
+        </div>
+      </form>
+
+      <div id="youtubeSearchMessage" class="youtubeSearchMessage">Şarkı, sanatçı veya video adı yaz.</div>
+      <div id="youtubeResults" class="youtubeResults" data-testid="youtube-results"></div>
+      <div id="youtubePlayModePrompt" class="youtubePlayModePrompt" hidden>
+        <div class="youtubePlayModeTitle">Klip oynatılsın mı?</div>
+        <div class="youtubePlayModeActions">
+          <button id="youtubePlayWithClipButton" class="youtubePlayModeButton activeYoutubePlayMode" type="button">Klip oynat</button>
+          <button id="youtubeAudioOnlyButton" class="youtubePlayModeButton" type="button">Arka plan kalsın</button>
+        </div>
+      </div>
+      <div class="youtubeOverlayHint">↑↓ sonuç seç • OK oynat • Geri kapat</div>
+    </div>
+  </div>
   <div id="languageOverlay" class="languageOverlay">
     <div class="languagePanel glass" role="dialog" aria-modal="true" aria-labelledby="languageTitle">
       <div id="languageTitle" class="languageTitle">Dil seçin / Choose language</div>
@@ -227,6 +298,6 @@
     </div>
   </div>
 
-  <script src="main.js?v=1.12.6"></script>
+  <script src="main.js?v=1.12.7"></script>
 </body>
 </html>

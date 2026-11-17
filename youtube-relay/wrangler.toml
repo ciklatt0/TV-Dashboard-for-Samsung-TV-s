@@ -1,0 +1,14 @@
+name = "tv-dashboard-youtube-relay"
+main = "src/index.js"
+compatibility_date = "2026-11-17"
+workers_dev = true
+
+# Kendi domainini bağlamak için:
+#   routes = [
+#     { pattern = "relay.example.com/*", zone_name = "example.com" }
+#   ]
+# wrangler deploy sonrası çıkan workers.dev adresini Durum/main.js içindeki
+# YOUTUBE.relayOptions ve YOUTUBE.relayUrls listelerine yaz.
+
+[observability]
+enabled = true

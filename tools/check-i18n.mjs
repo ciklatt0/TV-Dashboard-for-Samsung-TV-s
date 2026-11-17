@@ -35,6 +35,8 @@ const known = new Set(
 
 // setText("id", "metin") / setStatus("id", "metin", "class") ...
 const CALL = /\bset(?:Text|Status)\(\s*"[^"]*"\s*,\s*"((?:[^"\\]|\\.)*)"/g;
+// setYoutubeMessage("metin", "class") ilk argumani dogrudan metindir.
+const YOUTUBE_CALL = /\bsetYoutubeMessage\(\s*"((?:[^"\\]|\\.)*)"/g;
 // updateFooter("metin") ve updateFooter(condition ? "a" : "b") icindeki
 // literal'ler de ayni sozluge gider; ternaries icin parantez icini taririz.
 const FOOTER_CALL = /\bupdateFooter\(([^)]*)\)/g;
@@ -44,6 +46,9 @@ const turkish = /[ÇĞİIÖŞÜçğıöşü]|\b(?:ve|ile|için|olarak|çın|aç|
 
 const entries = [];
 for (const m of source.matchAll(CALL)) {
+  entries.push({ literal: m[1], index: m.index });
+}
+for (const m of source.matchAll(YOUTUBE_CALL)) {
   entries.push({ literal: m[1], index: m.index });
 }
 for (const call of source.matchAll(FOOTER_CALL)) {
@@ -70,7 +75,7 @@ source.split(/\r?\n/).forEach(function (line, index) {
   if (/[ÄÃÂ]/.test(line)) mojibake.push({ line: index + 1, text: line.trim() });
 });
 
-console.log(`setText/setStatus/updateFooter icinde Turkce literal: ${total}`);
+console.log(`setText/setStatus/setYoutubeMessage/updateFooter icinde Turkce literal: ${total}`);
 console.log(`EN_DYNAMIC anahtari: ${known.size}`);
 console.log(`Eksik ceviri: ${missing.size}`);
 console.log(`Bozuk kodlama: ${mojibake.length}`);

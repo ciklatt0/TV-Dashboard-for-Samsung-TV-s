@@ -35,6 +35,21 @@ body {
   transform: scale(1.01);
   pointer-events: none;
 }
+.youtubeBackground {
+  border: 0;
+  background: #050608;
+}
+
+.youtubeBackground.youtubeAudioOnly {
+  opacity: 0;
+  top: -100px;
+  right: auto;
+  bottom: auto;
+  left: -100px;
+  width: 1px;
+  height: 1px;
+  transform: none;
+}
 body::before {
   content: "";
   position: fixed;
@@ -407,6 +422,135 @@ body.weather-clear:not(.time-night)::before {
 .card:nth-child(7) { animation-delay: 300ms; }
 .card:nth-child(8) { animation-delay: 340ms; }
 
+.youtubeColumn {
+  width: 560px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.youtubePlayerCard {
+  min-height: 370px;
+  padding: 16px 18px;
+}
+
+.youtubeCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.youtubeCardHeader .miniLabel {
+  margin-bottom: 0;
+}
+
+.youtubeCardHeader strong {
+  margin-left: 16px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.youtubeViewport {
+  position: relative;
+  width: 100%;
+  height: 294px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #080808;
+}
+
+#youtubePlayer,
+#youtubePlayer iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.youtubePreview {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.76;
+}
+
+#youtubePlayer {
+  position: relative;
+  z-index: 1;
+}
+
+.youtubePlaceholder {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: linear-gradient(145deg, rgba(28, 12, 14, 0.96), rgba(8, 8, 10, 0.98));
+}
+
+.youtubePlaceholder strong,
+.youtubePlaceholder small {
+  display: block;
+}
+
+.youtubePlaceholder strong {
+  margin-top: 10px;
+  font-size: 17px;
+}
+
+.youtubePlaceholder small {
+  margin-top: 5px;
+  font-size: 11px;
+  opacity: 0.62;
+}
+
+.youtubeMark {
+  width: 52px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 3px;
+  color: #fff;
+  background: #ff0033;
+  font-size: 18px;
+}
+
+.youtubeTitle {
+  min-height: 17px;
+  margin-top: 9px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.youtubePlayerHint {
+  margin-top: 3px;
+  font-size: 10px;
+  opacity: 0.62;
+}
+
+.youtubeSearchCard {
+  min-height: 82px;
+  margin-top: 10px;
+  padding: 12px 18px;
+}
+
+.youtubeSearchCard .value {
+  font-size: 18px;
+}
 /* Odaklanan kart ayni cam yuzeyi korur, yalnizca biraz daha isiklanir ve
    kenarligi belirginlesir. Beyaz katman okunabilirligi bozmamasi icin dusuk
    tutulur.
@@ -536,6 +680,221 @@ body.weather-clear:not(.time-night)::before {
   margin-left: 14px;
 }
 
+.youtubeOverlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 18;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.youtubePanel {
+  width: 980px;
+  max-height: 86vh;
+  padding: 28px;
+  overflow: hidden;
+  border-radius: 26px;
+  background: rgba(12, 16, 25, 0.97);
+}
+
+.youtubeOverlayHeader,
+.youtubeInputRow {
+  display: flex;
+  align-items: center;
+}
+
+.youtubeOverlayHeader {
+  justify-content: space-between;
+}
+
+.youtubeOverlayTitle {
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.youtubeSearchHint,
+.youtubeOverlayHint {
+  font-size: 11px;
+  opacity: 0.62;
+}
+
+.youtubeSearchHint {
+  margin-top: 4px;
+}
+
+.youtubeSmallButton,
+.youtubeInputRow button {
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  border-radius: 12px;
+  color: white;
+  background: rgba(255, 255, 255, 0.09);
+  font: inherit;
+}
+
+.youtubeSmallButton {
+  padding: 9px 14px;
+}
+
+.youtubeSearchForm {
+  margin-top: 20px;
+}
+
+.youtubeSearchForm label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 13px;
+  opacity: 0.78;
+}
+
+.youtubeInputRow input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 46px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  outline: none;
+  color: white;
+  background: rgba(14, 17, 25, 0.46);
+  font: inherit;
+}
+
+.youtubeInputRow input:focus {
+  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+}
+
+.youtubeInputRow button {
+  flex: 0 0 92px;
+  height: 46px;
+  margin-left: 10px;
+  color: white;
+  background: rgba(14, 17, 25, 0.46);
+  font-weight: 700;
+}
+
+.youtubeInputRow button:hover {
+  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.youtubeSearchMessage {
+  min-height: 18px;
+  margin-top: 15px;
+  color: #ffe8a3;
+  font-size: 12px;
+}
+
+.youtubeResults {
+  max-height: 390px;
+  margin-top: 10px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.youtubeResult {
+  min-height: 104px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  color: white;
+  background: rgba(255, 255, 255, 0.05);
+  text-align: left;
+  font: inherit;
+}
+
+.youtubeResult img {
+  flex: 0 0 142px;
+  width: 142px;
+  height: 80px;
+  border-radius: 9px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.youtubeResultText {
+  min-width: 0;
+  margin-left: 11px;
+}
+
+.youtubeResultText strong,
+.youtubeResultText span {
+  display: block;
+}
+
+.youtubeResultText strong {
+  max-height: 38px;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.youtubeResultText span {
+  margin-top: 7px;
+  overflow: hidden;
+  font-size: 10px;
+  opacity: 0.62;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.youtubePlayModePrompt {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.youtubePlayModeTitle {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.youtubePlayModeActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 13px;
+}
+
+.youtubePlayModeButton {
+  min-height: 62px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.youtubeResult.activeYoutubeResult,
+.youtubeResult:focus,
+.youtubePlayModeButton.activeYoutubePlayMode,
+.youtubePlayModeButton:focus,
+.youtubeSmallButton:focus,
+.youtubeInputRow button:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: none;
+}
+
+.youtubeOverlayHint {
+  margin-top: 14px;
+  text-align: center;
+}
 /* Dil butonlari da kart camini kullanir: ince yuzey + hafif blur. */
 .languageChoice {
   flex: 1;
@@ -820,6 +1179,33 @@ body.weather-clear:not(.time-night)::before {
     font-size: 8px;
   }
 
+  .youtubeColumn {
+    width: 460px;
+  }
+
+  .youtubePlayerCard {
+    min-height: 300px;
+    padding: 12px 14px;
+  }
+
+  .youtubeViewport {
+    height: 233px;
+    margin-top: 7px;
+  }
+
+  .youtubeSearchCard {
+    min-height: 64px;
+    padding: 8px 14px;
+  }
+  .youtubePanel {
+    width: 900px;
+    max-height: 88vh;
+    padding: 20px;
+  }
+
+  .youtubeResults {
+    max-height: 300px;
+  }
   .settingsPanel {
     width: 520px;
     padding: 22px;
@@ -847,6 +1233,199 @@ body.weather-clear:not(.time-night)::before {
     top: 10px;
     max-width: 480px;
     padding: 7px 13px;
+    font-size: 10px;
+  }
+}
+/* YouTube kartı Ayarlar ile çakışmaması için alt orta bölümde durur. */
+.youtubeColumn {
+  width: 0;
+}
+
+body .youtubePlayerCard {
+  position: fixed;
+  right: auto;
+  left: 50%;
+  bottom: 58px;
+  z-index: 7;
+  display: none;
+  width: 360px;
+  min-height: 0;
+  margin: 0 0 0 -180px;
+  padding: 12px;
+  justify-content: flex-start;
+  border-radius: 18px;
+  background: rgba(10, 12, 18, 0.92);
+}
+
+body.youtubeHasSelection .youtubePlayerCard {
+  display: flex;
+}
+
+body.youtubeIsPlaying .youtubePlayerCard,
+body.youtubeIsPlaying .youtubeSearchCard {
+  display: none;
+}
+
+body .youtubeMiniCard {
+  position: fixed;
+  left: 50%;
+  bottom: 58px;
+  z-index: 7;
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  width: 330px;
+  min-height: 48px;
+  margin: 0 0 0 -165px;
+  padding: 8px 12px;
+  gap: 10px;
+  border-radius: 16px;
+  background: rgba(10, 12, 18, 0.78);
+  text-align: left;
+}
+
+body.youtubeIsPlaying .youtubeMiniCard {
+  display: flex;
+}
+
+body .youtubeMiniMark {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 22px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 2px;
+  color: #fff;
+  background: #ff0033;
+  font-size: 11px;
+}
+
+body .youtubeMiniText {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: block;
+}
+
+body .youtubeMiniText .miniLabel {
+  display: block;
+  margin: 0 0 1px;
+  font-size: 9px;
+}
+
+body .youtubeMiniText strong {
+  display: block;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .youtubeMiniAction {
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-weight: 700;
+  color: #b8ffc8;
+}
+
+body .youtubePlayerCard .youtubeCardHeader strong {
+  font-size: 9px;
+}
+
+body .youtubePlayerCard .youtubeViewport {
+  height: 200px;
+  margin-top: 7px;
+  border-radius: 11px;
+}
+
+body .youtubePlayerCard .youtubePlaceholder strong {
+  margin-top: 7px;
+  font-size: 14px;
+}
+
+body .youtubePlayerCard .youtubePlaceholder small {
+  font-size: 9px;
+}
+
+body .youtubePlayerCard .youtubeMark {
+  width: 42px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+body .youtubePlayerCard .youtubeTitle {
+  margin-top: 7px;
+  font-size: 11px;
+}
+
+body .youtubeSearchCard {
+  position: fixed;
+  right: auto;
+  left: 50%;
+  bottom: 58px;
+  z-index: 7;
+  width: 300px;
+  min-height: 72px;
+  margin: 0 0 0 -150px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(10, 12, 18, 0.88);
+}
+
+body.youtubeHasSelection .youtubeSearchCard {
+  display: none;
+}
+
+body .youtubeSearchCard .miniLabel {
+  margin-bottom: 3px;
+  font-size: 11px;
+}
+
+body .youtubeSearchCard .value {
+  font-size: 16px;
+}
+
+body .youtubeSearchCard .subValue {
+  font-size: 9px;
+}
+
+@media (max-width: 1400px) {
+  body .youtubePlayerCard {
+    right: auto;
+    left: 50%;
+    bottom: 34px;
+    width: 310px;
+    margin-left: -155px;
+    padding: 10px;
+  }
+
+  body .youtubePlayerCard .youtubeViewport {
+    height: 200px;
+  }
+
+  body .youtubeSearchCard {
+    right: auto;
+    left: 50%;
+    bottom: 34px;
+    width: 260px;
+    margin-left: -130px;
+    min-height: 60px;
+    padding: 8px 12px;
+  }
+
+  body .youtubeMiniCard {
+    bottom: 34px;
+    width: 280px;
+    min-height: 42px;
+    margin-left: -140px;
+    padding: 7px 10px;
+  }
+
+  body .youtubeMiniText strong {
     font-size: 10px;
   }
 }

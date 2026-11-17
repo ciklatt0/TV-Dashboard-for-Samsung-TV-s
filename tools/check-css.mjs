@@ -1,5 +1,5 @@
 // index.html'da kullanilan her sinifin style.css'te tanimi var mi?
-// YouTube ozelligi kaldirildiktan sonra olu CSS kalmasin diye denetler.
+// Olu CSS ya da tanimsiz sinif kalmasin diye denetler.
 //
 // Kullanim: node tools/check-css.mjs
 
@@ -25,6 +25,9 @@ const JS_ADDED = new Set([
   "settingsCard", "time-night", "weather-rain", "weather-snow", "weather-clear",
   "criticalAlert", "warnFill", "badFill", "warn", "bad", "ok", "activeSetting",
   "activeLanguage",
+  // YouTube sonuclari JS ile olusturulur; siniflar HTML'de statik gorunmez.
+  "youtubeAudioOnly", "youtubeResult", "youtubeResultText",
+  "activeYoutubeResult", "youtubeHasSelection", "youtubeIsPlaying",
 ]);
 
 const missing = [...used].filter(

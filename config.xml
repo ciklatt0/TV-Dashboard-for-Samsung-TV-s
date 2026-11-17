@@ -2,7 +2,7 @@
 <widget xmlns="http://www.w3.org/ns/widgets"
         xmlns:tizen="http://tizen.org/ns/widgets"
         id="https://tvdashboard.local/TVDashboard"
-        version="1.12.6"
+        version="1.12.7"
         viewmodes="maximized">
 
     <name>TV Dashboard</name>
@@ -13,6 +13,14 @@
     <access origin="https://speed.cloudflare.com" subdomains="false"/>
     <access origin="https://get.geojs.io" subdomains="false"/>
     <access origin="https://ipwho.is" subdomains="false"/>
+    <access origin="https://api.piped.private.coffee" subdomains="false"/>
+    <access origin="https://piped.private.coffee" subdomains="true"/>
+    <access origin="https://workers.dev" subdomains="true"/>
+    <access origin="https://tvdash-youtube-relay.windows-destekleyeci.chatgpt.site" subdomains="false"/>
+    <access origin="https://youtube.com" subdomains="true"/>
+    <access origin="https://youtube-nocookie.com" subdomains="true"/>
+    <access origin="https://ytimg.com" subdomains="true"/>
+    <access origin="https://googlevideo.com" subdomains="true"/>
 
     <tizen:application id="TVDashApp1.TVDashboard"
                        package="TVDashApp1"

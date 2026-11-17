@@ -324,22 +324,16 @@ runStep("arka plansa gec / geri don", () => {
 });
 runStep("cikis (Geri)", () => key(10009));
 
-// --- Tanimsiz cagri denetimi --------------------------------------------------
-console.log("\n--- tanimsiz cagri denetimi ---");
-const gone = [
-  "playYoutube", "pauseYoutube", "toggleYoutube", "openYoutubeSearch",
-  "closeYoutubeSearch", "initYoutube", "loadYoutubeSelection",
-  "updateYoutubeSearchCard", "updateYoutubeMiniCard", "updateYoutubePlaybackChrome",
-  "stopYoutubeBackground", "clearEmbeddedYoutubePlayer", "decodeYoutubeText",
-  "extractYoutubeVideoId", "pickBestYoutubeStream", "fetchJsonWithTimeout",
-  "buildPipedSearchUrl", "handleYoutubeOverlayKey", "youtubePlayer",
-];
-const left = gone.filter((name) => new RegExp(`\\b${name}\\b`).test(js));
-console.log(left.length ? `  KALAN: ${left.join(", ")}` : "  temiz");
-if (left.length) process.exitCode = 1;
-
+// --- Olu fonksiyon denetimi ---------------------------------------------------
+console.log("\n--- olu cagri denetimi ---");
+// Bu fonksiyonlar dogrudan cagirilmaz; YouTube IFrame API'si global
+// callback (onYouTubeIframeAPIReady) ve player olaylari uzerinden cagirir.
+const INDIRECT = new Set([
+  "ensureYoutubePlayerApi", "handleYoutubePlayerReady", "handleYoutubePlayerState",
+]);
 const defs = [...js.matchAll(/^(?:async )?function (\w+)\s*\(/gm)].map((m) => m[1]);
 const dead = defs.filter((name) => {
+  if (INDIRECT.has(name)) return false;
   const refs = [...js.matchAll(new RegExp(`\\b${name}\\b`, "g"))].length;
   return refs <= 1;
 });

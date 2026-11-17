@@ -42,7 +42,7 @@ const CHECKS = [
   { name: "Windows yolu", re: /[A-Z]:\\(?:Users|Documents and Settings)[\\/][^\\/:*?"<>|\r\n]{2,60}/gi },
   { name: "Unix ev dizini", re: /(?:\/home\/|\/Users\/)[a-z0-9._-]{2,40}(?:\/[a-z0-9._-]{2,40})?/gi },
   // Bu araclarin kaynak kodunda "OneDrive" bir tarama deseni olarak geciyor.
-  { name: "OneDrive", re: /OneDrive/gi, skipFile: (label) => /(?:^|:)tools\//.test(label) },
+  { name: "OneDrive", re: /OneDrive/gi, skipFile: (label) => /(?:^|:|\/)tools\//.test(label) },
   { name: "Kullanici adi (ev dizini)", re: /\bwindo\b/gi },
   { name: "E-posta", re: /\b[\w.+-]+@[\w-]+\.[\w.]{2,}\b/g, skip: (m) => /@(example|schema|tizen\.org|w3\.org|developer\.samsung|mozilla|github|user@host)/i.test(m) || /^[\w.+-]+@[\w-]+\.(com|org|net)$/i.test(m) === false && /tizen/i.test(m) },
   { name: "Ozel anahtar", re: /-----BEGIN[ A-Z]*PRIVATE KEY-----/g },

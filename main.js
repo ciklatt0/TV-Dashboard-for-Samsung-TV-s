@@ -1,6 +1,6 @@
 "use strict";
 
-const APP_VERSION = "1.12.6";
+const APP_VERSION = "1.12.7";
 
 const PERFORMANCE = {
   clockIntervalMs: 60 * 1000,
@@ -40,6 +40,10 @@ const I18N = {
     backgroundMode: "Arka plan modu",
     backgroundPhoto: "Foto seçimi",
     backgroundVideo: "Video seçimi",
+    youtubeEmpty: "YouTube'dan müzik seç",
+    youtubeEmptyHint: "Aşağıdaki arama kartına bas",
+    youtubeSearch: "YouTube'da Ara",
+    youtubeRelay: "YouTube relay",
     settingsHint: "↑↓ alan seç • ←→ değiştir • OK kaydet",
     language: "Dil",
     musicTrack: "Müzik seçimi"
@@ -69,6 +73,10 @@ const I18N = {
     backgroundMode: "Background mode",
     backgroundPhoto: "Photo selection",
     backgroundVideo: "Video selection",
+    youtubeEmpty: "Choose music from YouTube",
+    youtubeEmptyHint: "Open the search card below",
+    youtubeSearch: "Search YouTube",
+    youtubeRelay: "YouTube relay",
     settingsHint: "↑↓ select field • ←→ change • OK save",
     language: "Language",
     musicTrack: "Music selection"
@@ -213,7 +221,44 @@ const EN_DYNAMIC = {
   // Interpolated values, e.g. "Mimari: " + architecture.
   "Tarayıcı ağ durumu": "Browser network state",
   "Mimari bilinmiyor": "Architecture unknown",
-  "Mimari: ": "Architecture: "
+  "Mimari: ": "Architecture: ",
+  // YouTube feature
+  "Müzik bul": "Find music",
+  "YouTube oynatıcı hazır": "YouTube player ready",
+  "OK: müzik değiştir • Play/Pause: oynat": "OK: change music • Play/Pause: play",
+  "YouTube araması açık": "YouTube search open",
+  "YouTube araması kapatıldı": "YouTube search closed",
+  "YouTube video oynuyor": "YouTube video playing",
+  "Oynatıcı açık • kontrolü ekrandan yap": "Player open • use on-screen controls",
+  "YouTube çalıyor": "YouTube playing",
+  "YouTube duraklatıldı": "YouTube paused",
+  "YouTube yükleniyor": "YouTube loading",
+  "YouTube hazır": "YouTube ready",
+  "Başka bir sonuç seç": "Choose another result",
+  "YouTube oynatma hatası": "YouTube playback error",
+  "YouTube ses çalıyor": "YouTube audio playing",
+  "Otomatik başlatılıyor • Play/Pause: durdur": "Starting automatically • Play/Pause: stop",
+  "YouTube stream aranıyor": "Looking for YouTube stream",
+  "Play/Pause: arka planı durdur • OK: müzik değiştir": "Play/Pause: stop background • OK: change music",
+  "YouTube video başlıyor": "YouTube video starting",
+  "Bu video oynatılamadı • başka sonuç seç": "This video could not be played • choose another result",
+  "OK: arka planda oynat": "OK: play in background",
+  "YouTube arka planı durdu": "YouTube background stopped",
+  "Şarkı, sanatçı veya video adı yaz.": "Write a song, artist or video name.",
+  "Klip oynatılsın mı?": "Play the clip?",
+  "Arama metni gir": "Enter search text",
+  "YouTube aranıyor...": "Searching YouTube...",
+  "Arama sonucu bulunamadı": "No results found",
+  "Arama tamamlandı": "Search complete",
+  "YouTube araması tamamlanamadı": "YouTube search failed",
+  "Bu video oynatılamadı, başka sonuç seç.": "This video could not be played, choose another result.",
+  "Sonuç seç veya yeni arama yap.": "Choose a result or start a new search.",
+  "OK: arama ekranını aç": "OK: open search screen",
+  "OK: değiştir": "OK: change",
+  "Video ara ve kapaktan seç": "Search and pick from the cover",
+  "Şarkı, sanatçı veya video ara": "Search for a song, artist or video",
+  "Arka plan kalsın": "Keep background",
+  "↑↓ sonuç seç • OK oynat • Geri kapat": "↑↓ select result • OK play • Back close"
 };
 
 const WEATHER_REFRESH_OPTIONS = [5, 10, 15, 30];
@@ -227,12 +272,53 @@ const SETTING_ROWS = [
   "settingBackgroundMode",
   "settingBackgroundImage",
   "settingBackgroundVideo",
+  "settingYoutubeRelay",
   "settingLanguage"
 ];
 const SETTING_ROW_COUNT = SETTING_ROWS.length;
 
 const LANGUAGE_STORAGE_KEY = "tvDashboardLanguage";
 
+const YOUTUBE = {
+  searchProviders: [
+    {
+      name: "Piped",
+      endpoint: "https://api.piped.private.coffee/search"
+    }
+  ],
+  // Cloudflare Worker relay adresleri. İlk satırı kendi worker adresinle
+  // değiştir; "REPLACE-WITH-YOUR-WORKER" içeren girdiler çalışma anında atlanır.
+  // Ayarlar panelinden "Otomatik" dışındaki bir relay seçilebilir.
+  relayOptions: [
+    { label: "Otomatik", value: "" },
+    { label: "Cloudflare", value: "https://REPLACE-WITH-YOUR-WORKER.workers.dev" },
+    { label: "Yedek relay", value: "https://tvdash-youtube-relay.windows-destekleyeci.chatgpt.site" }
+  ],
+  relayUrls: [
+    "https://REPLACE-WITH-YOUR-WORKER.workers.dev",
+    "https://tvdash-youtube-relay.windows-destekleyeci.chatgpt.site"
+  ],
+  // Tizen file:// origin'i YouTube için geçerli değildir; son "?origin="
+  // fallback'inde relay origin'i kullanılır.
+  embedOrigin: "https://tvdash-youtube-relay.windows-destekleyeci.chatgpt.site",
+  embedReferrer: "https://tvdashboard.local/TVDashboard",
+  // Relay tabanlı adresler getYoutubeEmbedUrls() ile üretilir; burada yalnızca
+  // relay'siz yedekler sıralanır.
+  embedFallbacks: [
+    "https://piped.private.coffee/embed/{videoId}?playerAutoPlay={playerAutoPlay}",
+    "https://www.youtube-nocookie.com/embed/{videoId}?autoplay={autoplay}&mute=0&controls=0&disablekb=1&fs=0&iv_load_policy=3&playsinline=1&rel=0&loop=1&playlist={videoId}&enablejsapi=1",
+    "https://www.youtube.com/embed/{videoId}?autoplay={autoplay}&mute=0&controls=0&disablekb=1&fs=0&iv_load_policy=3&playsinline=1&rel=0&loop=1&playlist={videoId}&enablejsapi=1&origin={origin}&widget_referrer={referrer}"
+  ],
+  // Ölü Piped/Invidious instance'ları kaldırıldı; yalnızca ayakta olan kaldı.
+  streamProviders: [
+    { name: "Piped Private", type: "piped", endpoint: "https://api.piped.private.coffee/streams/{videoId}" }
+  ],
+  selectionStorage: "tvDashboardYouTubeSelection",
+  maxResults: 8,
+  searchTimeoutMs: 12000,
+  streamTimeoutMs: 9000,
+  autoplayNudgeDelaysMs: [250, 900, 1800]
+};
 const SPEED_TEST = {
   downloadUrl: "https://speed.cloudflare.com/__down",
   downloadBytes: 3000000,
@@ -291,6 +377,24 @@ let ipLocation = null;
 let currentLanguage = "tr";
 let languageOpen = true;
 let activeLanguageIndex = 0;
+let youtubeOverlayOpen = false;
+let youtubeResults = [];
+let activeYoutubeResultIndex = -1;
+let youtubeSelection = null;
+let youtubePendingSelection = null;
+let youtubePlayModePromptOpen = false;
+let activeYoutubePlayModeIndex = 0;
+let youtubePlayer = null;
+let youtubePlayerReady = false;
+let youtubePlayerState = -1;
+let youtubePlayerApiPromise = null;
+let youtubePendingAutoplay = false;
+let youtubePlayerMode = "youtube";
+let youtubePreferEmbedFallback = false;
+let youtubeBackgroundActive = false;
+let youtubeBackgroundRequestToken = 0;
+let youtubeEmbedCacheBustCounter = 0;
+const youtubeFailedVideos = {};
 
 let lastStorageRefresh = 0;
 let lastSourceRefresh = 0;
@@ -323,7 +427,8 @@ let settings = {
   refreshIndex: 1,
   backgroundMode: "video",
   backgroundImageIndex: 0,
-  backgroundVideoIndex: 0
+  backgroundVideoIndex: 0,
+  youtubeRelayUrl: ""
 };
 const systemSnapshot = {
   cpu: null,
@@ -494,7 +599,7 @@ function confirmLanguage(language) {
   if (overlay) overlay.hidden = true;
   refreshLanguageSensitiveUi();
   focusFirstCard();
-  playMusic();
+  if (!youtubeSelection) playMusic();
 }
 
 function handleLanguageKey(key) {
@@ -986,6 +1091,7 @@ function clearBackgroundRecovery(resetAttempts) {
 function scheduleBackgroundRecovery(renderToken) {
   if (
     renderToken !== backgroundRenderToken ||
+    youtubeBackgroundActive ||
     document.hidden ||
     backgroundRecoveryTimer
   ) {
@@ -1004,7 +1110,7 @@ function scheduleBackgroundRecovery(renderToken) {
 
   backgroundRecoveryTimer = setTimeout(function () {
     backgroundRecoveryTimer = null;
-    if (renderToken !== backgroundRenderToken || document.hidden) return;
+    if (renderToken !== backgroundRenderToken || youtubeBackgroundActive || document.hidden) return;
     applyBackgroundSelection(settingsOpen && settingsDraft ? settingsDraft : settings, true);
   }, delay);
 }
@@ -1032,7 +1138,7 @@ function isBackgroundVideoPlaying() {
 }
 
 function ensureBackgroundPlayback() {
-  if (document.hidden) return;
+  if (youtubeBackgroundActive || document.hidden) return;
 
   const values = normalizeSettings(settingsOpen && settingsDraft ? settingsDraft : settings);
   if (values.backgroundMode !== "video" || !getSelectedBackgroundFile("video", values)) return;
@@ -1126,6 +1232,7 @@ function applyBackgroundSelection(source, force) {
   const image = getEl("bgImage");
   const video = getEl("bgVideo");
   if (!image || !video) return;
+  if (youtubeBackgroundActive) return;
 
   const values = normalizeSettings(source || settings);
   const imageFile = getSelectedBackgroundFile("image", values) || MEDIA.backgroundImageFile;
@@ -2328,6 +2435,8 @@ function playMusic() {
 
   audio.volume = MEDIA.musicVolume;
 
+  if (youtubePlayerState === 1) pauseYoutube();
+
   if (audio.readyState === 0) audio.load();
 
   try {
@@ -2393,9 +2502,1271 @@ function initMusic() {
 function updateMediaScreenSaver() {
   const audio = getEl("bgMusic");
   const localMusicPlaying = !!(audio && !audio.paused);
-  setScreenSaverEnabled(!localMusicPlaying);
+  setScreenSaverEnabled(!localMusicPlaying && youtubePlayerState !== 1);
 }
 
+function getStoredYoutubeValue(key) {
+  try {
+    return localStorage.getItem(key) || "";
+  } catch (e) {
+    return "";
+  }
+}
+
+function setStoredYoutubeValue(key, value) {
+  try {
+    if (value) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
+  } catch (e) {}
+}
+
+function setYoutubeMessage(text, className) {
+  const element = getEl("youtubeSearchMessage");
+  if (!element) return;
+  setText("youtubeSearchMessage", text);
+  element.classList.toggle("bad", className === "bad");
+  element.classList.toggle("ok", className === "ok");
+  element.classList.toggle("warn", className !== "bad" && className !== "ok");
+}
+
+function updateYoutubeSearchCard() {
+  if (document.body) {
+    document.body.classList.toggle("youtubeHasSelection", !!youtubeSelection);
+    updateYoutubePlaybackChrome();
+  }
+
+  setText("youtubeSearchSummary", "Müzik bul");
+  setText("youtubeSearchDetail", "OK: YouTube'da ara");
+
+  if (!youtubeSelection) {
+    setStatus("youtubeStatus", "Müzik seçilmedi", "warn");
+    setText("youtubeTitle", "YouTube oynatıcı hazır");
+  } else {
+    setText("youtubePlayerHint", "OK: müzik değiştir • Play/Pause: oynat");
+  }
+}
+
+function updateYoutubeMiniCard() {
+  const title = getEl("youtubeMiniTitle");
+  const action = getEl("youtubeMiniAction");
+  if (title) {
+    title.textContent = youtubeSelection && youtubeSelection.title
+      ? youtubeSelection.title
+      : "Müzik seçilmedi";
+  }
+  if (action) {
+    action.textContent = youtubeBackgroundActive
+      ? "OK: değiştir"
+      : "OK: aç";
+  }
+}
+
+function updateYoutubePlaybackChrome() {
+  if (!document.body) return;
+  document.body.classList.toggle(
+    "youtubeIsPlaying",
+    !!youtubeBackgroundActive && youtubePlayerState === 1
+  );
+  updateYoutubeMiniCard();
+}
+
+function focusYoutubeSearchInput() {
+  const searchForm = getEl("youtubeSearchForm");
+  if (searchForm) searchForm.hidden = false;
+
+  setTimeout(function () {
+    const target = getEl("youtubeSearchInput");
+    if (target) target.focus();
+  }, 0);
+}
+
+function openYoutubeSearch() {
+  const overlay = getEl("youtubeOverlay");
+  if (!overlay) return;
+  hideYoutubePlayModePrompt();
+  youtubeOverlayOpen = true;
+  overlay.hidden = false;
+  focusYoutubeSearchInput();
+  setYoutubeMessage("Şarkı, sanatçı veya video adı yaz.", "ok");
+  updateFooter("YouTube araması açık");
+}
+
+function closeYoutubeSearch() {
+  const overlay = getEl("youtubeOverlay");
+  if (!overlay) return;
+  hideYoutubePlayModePrompt();
+  youtubeOverlayOpen = false;
+  overlay.hidden = true;
+  const card = document.querySelector(
+    youtubeBackgroundActive ? ".youtubeMiniCard" :
+      (youtubeSelection ? ".youtubePlayerCard" : ".youtubeSearchCard")
+  );
+  if (card) card.focus();
+  updateFooter("YouTube araması kapatıldı");
+}
+
+function clearYoutubeResults() {
+  const container = getEl("youtubeResults");
+  if (container) container.innerHTML = "";
+  youtubeResults = [];
+  activeYoutubeResultIndex = -1;
+}
+
+function setActiveYoutubeResult(index, focusResult) {
+  if (!youtubeResults.length) return;
+  const safeIndex = Math.max(0, Math.min(youtubeResults.length - 1, index));
+  activeYoutubeResultIndex = safeIndex;
+  const buttons = document.querySelectorAll(".youtubeResult");
+  Array.prototype.forEach.call(buttons, function (button, buttonIndex) {
+    const active = buttonIndex === safeIndex;
+    button.classList.toggle("activeYoutubeResult", active);
+    button.tabIndex = active ? 0 : -1;
+    if (active && focusResult) {
+      button.focus();
+      try { button.scrollIntoView({ block: "nearest" }); } catch (e) {}
+    }
+  });
+}
+
+function setActiveYoutubePlayMode(index, focusButton) {
+  activeYoutubePlayModeIndex = Math.max(0, Math.min(1, Number(index) || 0));
+  [
+    getEl("youtubePlayWithClipButton"),
+    getEl("youtubeAudioOnlyButton")
+  ].forEach(function (button, buttonIndex) {
+    if (!button) return;
+    const active = buttonIndex === activeYoutubePlayModeIndex;
+    button.classList.toggle("activeYoutubePlayMode", active);
+    if (active && focusButton) button.focus();
+  });
+}
+
+function hideYoutubePlayModePrompt() {
+  const prompt = getEl("youtubePlayModePrompt");
+  const form = getEl("youtubeSearchForm");
+  const results = getEl("youtubeResults");
+  youtubePlayModePromptOpen = false;
+  youtubePendingSelection = null;
+  if (prompt) prompt.hidden = true;
+  if (form) form.hidden = false;
+  if (results) results.hidden = false;
+}
+
+function showYoutubePlayModePrompt(selection) {
+  const prompt = getEl("youtubePlayModePrompt");
+  const form = getEl("youtubeSearchForm");
+  const results = getEl("youtubeResults");
+  if (!prompt) return false;
+
+  youtubePendingSelection = selection;
+  youtubePlayModePromptOpen = true;
+  activeYoutubePlayModeIndex = 0;
+  if (form) form.hidden = true;
+  if (results) results.hidden = true;
+  prompt.hidden = false;
+  setYoutubeMessage("Klip oynatılsın mı?", "warn");
+  setActiveYoutubePlayMode(0, true);
+  return true;
+}
+
+function confirmYoutubePlayMode(playClip) {
+  if (!youtubePendingSelection) return;
+  const selection = Object.assign({}, youtubePendingSelection, {
+    playClip: playClip === true
+  });
+
+  hideYoutubePlayModePrompt();
+  saveYoutubeSelection(selection);
+  closeYoutubeSearch();
+  const audio = getEl("bgMusic");
+  if (audio && !audio.paused) audio.pause();
+  loadYoutubePlayer(selection, true);
+  setTimeout(function () {
+    const miniCard = document.querySelector(".youtubeMiniCard");
+    if (miniCard && miniCard.offsetWidth > 0 && miniCard.offsetHeight > 0) {
+      miniCard.focus();
+    } else {
+      focusFirstCard();
+    }
+  }, 0);
+}
+
+function renderYoutubeResults(items) {
+  const container = getEl("youtubeResults");
+  if (!container) return;
+  container.innerHTML = "";
+  youtubeResults = items;
+
+  items.forEach(function (item, index) {
+    const button = document.createElement("button");
+    const image = document.createElement("img");
+    const text = document.createElement("span");
+    const title = document.createElement("strong");
+    const channel = document.createElement("span");
+
+    button.type = "button";
+    button.className = "youtubeResult";
+    button.setAttribute("data-youtube-index", String(index));
+    button.tabIndex = -1;
+    image.src = item.thumbnail;
+    image.alt = "";
+    image.loading = "lazy";
+    text.className = "youtubeResultText";
+    title.textContent = item.title;
+    channel.textContent = item.channel;
+    text.appendChild(title);
+    text.appendChild(channel);
+    button.appendChild(image);
+    button.appendChild(text);
+    button.addEventListener("click", function () { selectYoutubeResult(index); });
+    button.addEventListener("focus", function () { setActiveYoutubeResult(index, false); });
+    container.appendChild(button);
+  });
+
+  if (items.length) setActiveYoutubeResult(0, true);
+}
+
+function buildPipedSearchUrl(provider, query) {
+  return provider.endpoint +
+    "?q=" + encodeURIComponent(query) +
+    "&filter=videos";
+}
+
+function fetchJsonWithTimeout(url, timeoutMs) {
+  return new Promise(function (resolve, reject) {
+    let finished = false;
+    const timeout = setTimeout(function () {
+      if (finished) return;
+      finished = true;
+      reject(new Error("timeout"));
+    }, timeoutMs);
+
+    fetch(url, { method: "GET", cache: "no-store" }).then(function (response) {
+      return response.text().then(function (text) {
+        return { response: response, text: text };
+      });
+    }).then(function (result) {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeout);
+      if (!result.response.ok) {
+        const error = new Error("status");
+        error.status = result.response.status;
+        reject(error);
+        return;
+      }
+      try {
+        resolve(JSON.parse(result.text));
+      } catch (e) {
+        reject(e);
+      }
+    }).catch(function (error) {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeout);
+      reject(error);
+    });
+  });
+}
+
+function decodeYoutubeText(value) {
+  const text = String(value || "");
+  if (!text) return "";
+
+  try {
+    const textarea = decodeYoutubeText.element || document.createElement("textarea");
+    decodeYoutubeText.element = textarea;
+    textarea.innerHTML = text;
+    return textarea.value;
+  } catch (e) {
+    return text
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, "\"")
+      .replace(/&#39;/g, "'")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">");
+  }
+}
+
+function extractYoutubeVideoId(value) {
+  const text = String(value || "");
+  const match = text.match(/(?:v=|\/embed\/|\/shorts\/|youtu\.be\/)([A-Za-z0-9_-]{11})/) ||
+    text.match(/^([A-Za-z0-9_-]{11})$/);
+  return match ? match[1] : "";
+}
+
+function normalizePipedVideo(item) {
+  if (!item || item.type !== "stream") return null;
+  const videoId = extractYoutubeVideoId(item.url || item.videoId || item.id);
+  if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return null;
+
+  return {
+    videoId: videoId,
+    title: decodeYoutubeText(item.title || "YouTube video"),
+    channel: decodeYoutubeText(item.uploaderName || item.channelName || "YouTube"),
+    thumbnail: "https://i.ytimg.com/vi/" + videoId + "/hqdefault.jpg"
+  };
+}
+
+function parsePipedSearchPayload(payload) {
+  const source = Array.isArray(payload)
+    ? payload
+    : (payload && Array.isArray(payload.items) ? payload.items : []);
+  const seen = {};
+
+  return source.map(normalizePipedVideo).filter(function (item) {
+    if (!item || seen[item.videoId]) return false;
+    seen[item.videoId] = true;
+    return true;
+  }).slice(0, YOUTUBE.maxResults);
+}
+
+async function fetchYoutubeSearchResults(query) {
+  let lastError = null;
+
+  for (let index = 0; index < YOUTUBE.searchProviders.length; index += 1) {
+    const provider = YOUTUBE.searchProviders[index];
+    try {
+      const payload = await fetchJsonWithTimeout(
+        buildPipedSearchUrl(provider, query),
+        YOUTUBE.searchTimeoutMs
+      );
+      const items = parsePipedSearchPayload(payload);
+      if (items.length) return items;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) throw lastError;
+  return [];
+}
+
+async function searchYoutube() {
+  const input = getEl("youtubeSearchInput");
+  const button = getEl("youtubeSearchButton");
+  const query = input ? input.value.trim() : "";
+
+  if (!query) {
+    setYoutubeMessage("Arama metni gir", "warn");
+    if (input) input.focus();
+    return;
+  }
+
+  hideYoutubePlayModePrompt();
+  clearYoutubeResults();
+  if (button) button.disabled = true;
+  setYoutubeMessage("YouTube aranıyor...", "warn");
+
+  try {
+    const items = await fetchYoutubeSearchResults(query);
+
+    if (!items.length) {
+      setYoutubeMessage("Arama sonucu bulunamadı", "warn");
+      return;
+    }
+    renderYoutubeResults(items);
+    setYoutubeMessage("Arama tamamlandı", "ok");
+  } catch (error) {
+    setYoutubeMessage("YouTube araması tamamlanamadı", "bad");
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+function normalizeYoutubeSelection(selection) {
+  if (!selection) return null;
+  return Object.assign({}, selection, {
+    playClip: selection.playClip === true
+  });
+}
+
+function shouldPlayYoutubeClip(selection) {
+  return !!selection && selection.playClip === true;
+}
+
+function saveYoutubeSelection(selection) {
+  const normalized = normalizeYoutubeSelection(selection);
+  youtubeSelection = normalized;
+  try {
+    setStoredYoutubeValue(YOUTUBE.selectionStorage, JSON.stringify(normalized));
+  } catch (e) {}
+  updateYoutubeSearchCard();
+}
+
+function loadYoutubeSelection() {
+  const saved = getStoredYoutubeValue(YOUTUBE.selectionStorage);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed && /^[A-Za-z0-9_-]{11}$/.test(String(parsed.videoId || ""))) {
+        youtubeSelection = normalizeYoutubeSelection(parsed);
+      }
+    } catch (e) {}
+  }
+  updateYoutubeSearchCard();
+}
+
+function ensureYoutubePlayerApi() {
+  if (window.YT && typeof YT.Player === "function") return Promise.resolve();
+  if (youtubePlayerApiPromise) return youtubePlayerApiPromise;
+
+  youtubePlayerApiPromise = new Promise(function (resolve, reject) {
+    let finished = false;
+    const timeout = setTimeout(function () {
+      if (finished) return;
+      finished = true;
+      reject(new Error("YouTube player timeout"));
+    }, 15000);
+    const previousReady = window.onYouTubeIframeAPIReady;
+
+    window.onYouTubeIframeAPIReady = function () {
+      if (typeof previousReady === "function") {
+        try { previousReady(); } catch (e) {}
+      }
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeout);
+      resolve();
+    };
+
+    if (!document.querySelector("script[data-youtube-player-api]")) {
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      script.setAttribute("data-youtube-player-api", "true");
+      script.onerror = function () {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timeout);
+        reject(new Error("YouTube player load failed"));
+      };
+      document.head.appendChild(script);
+    }
+  });
+
+  return youtubePlayerApiPromise;
+}
+
+function normalizeYoutubeRelayUrl(value) {
+  const url = String(value || "").trim().replace(/\/+$/, "");
+  return /^https:\/\//i.test(url) ? url : "";
+}
+
+function getYoutubeRelayLabel(value) {
+  const selected = normalizeYoutubeRelayUrl(value);
+  for (let index = 0; index < YOUTUBE.relayOptions.length; index += 1) {
+    if (YOUTUBE.relayOptions[index].value === selected) {
+      return YOUTUBE.relayOptions[index].label;
+    }
+  }
+  return YOUTUBE.relayOptions[0].label;
+}
+
+function getYoutubeRelayUrls() {
+  const result = [];
+  const selected = normalizeYoutubeRelayUrl(settings && settings.youtubeRelayUrl);
+  if (selected && selected.indexOf("REPLACE-WITH-YOUR-WORKER") < 0) result.push(selected);
+
+  YOUTUBE.relayUrls.forEach(function (value) {
+    const url = normalizeYoutubeRelayUrl(value);
+    if (url && url.indexOf("REPLACE-WITH-YOUR-WORKER") < 0 && result.indexOf(url) < 0) {
+      result.push(url);
+    }
+  });
+  return result;
+}
+
+function getYoutubeEmbedOrigin() {
+  const relays = getYoutubeRelayUrls();
+  if (relays.length) return relays[0];
+  const origin = window.location && window.location.origin ? String(window.location.origin) : "";
+  return /^https?:\/\//i.test(origin) ? origin : YOUTUBE.embedOrigin;
+}
+
+function buildYoutubeEmbedFallbackUrl(template, selection, autoplay, relayUrl) {
+  const videoId = encodeURIComponent(selection.videoId);
+  const cacheBust = encodeURIComponent(
+    APP_VERSION + "-" + (++youtubeEmbedCacheBustCounter) + "-" + Date.now()
+  );
+  const relays = getYoutubeRelayUrls();
+  const relay = normalizeYoutubeRelayUrl(relayUrl) || relays[0] || YOUTUBE.embedOrigin;
+  let url = template
+    .replace(/\{videoId\}/g, videoId)
+    .replace(/\{autoplay\}/g, autoplay ? "1" : "0")
+    .replace(/\{playerAutoPlay\}/g, autoplay ? "true" : "false")
+    .replace(/\{relayUrl\}/g, relay)
+    .replace(/\{origin\}/g, encodeURIComponent(relays[0] || getYoutubeEmbedOrigin()))
+    .replace(/\{referrer\}/g, encodeURIComponent(YOUTUBE.embedReferrer));
+
+  if (url.indexOf("autoplay=") < 0) {
+    url += (url.indexOf("?") >= 0 ? "&" : "?") + "autoplay=" + (autoplay ? "1" : "0");
+  }
+  url += (url.indexOf("?") >= 0 ? "&" : "?") + "tvdb=" + cacheBust;
+  return url;
+}
+
+function getYoutubeEmbedUrls(selection, autoplay) {
+  const urls = [];
+  const relayTemplate = "{relayUrl}?v={videoId}&autoplay={autoplay}&mute=0";
+
+  getYoutubeRelayUrls().forEach(function (relay) {
+    urls.push(buildYoutubeEmbedFallbackUrl(relayTemplate, selection, autoplay, relay));
+  });
+  YOUTUBE.embedFallbacks.forEach(function (template) {
+    urls.push(buildYoutubeEmbedFallbackUrl(template, selection, autoplay));
+  });
+  return urls;
+}
+
+function sendYoutubeIframePlayCommand(frame) {
+  if (!frame || frame.hidden) return;
+  if (!frame.contentWindow) return;
+
+  [
+    JSON.stringify({ event: "command", func: "playVideo", args: [] }),
+    JSON.stringify({ event: "command", func: "play", args: [] }),
+    { event: "command", func: "playVideo", args: [] },
+    { event: "command", func: "play", args: [] }
+  ].forEach(function (message) {
+    try { frame.contentWindow.postMessage(message, "*"); } catch (e) {}
+  });
+}
+
+function restoreDashboardFocus() {
+  const active = document.activeElement;
+  if (active && active.tagName !== "IFRAME" && active.offsetWidth > 0 && active.offsetHeight > 0) {
+    return;
+  }
+  focusFirstCard();
+}
+
+function scheduleYoutubeIframeAutoplay(frame) {
+  if (!frame || !Array.isArray(YOUTUBE.autoplayNudgeDelaysMs)) return;
+  YOUTUBE.autoplayNudgeDelaysMs.forEach(function (delay) {
+    setTimeout(function () {
+      if (!youtubeBackgroundActive || frame !== getEl("youtubeBackground")) return;
+      sendYoutubeIframePlayCommand(frame);
+    }, delay);
+  });
+}
+
+function recreateYoutubeBackgroundFrame() {
+  const current = document.getElementById("youtubeBackground");
+  if (!current || !current.parentNode) return current;
+
+  const frame = document.createElement("iframe");
+  frame.id = "youtubeBackground";
+  frame.className = "bgMedia youtubeBackground";
+  frame.title = "YouTube background";
+  frame.hidden = true;
+  frame.tabIndex = -1;
+  frame.allow = "autoplay; encrypted-media; fullscreen; picture-in-picture";
+  frame.referrerPolicy = "strict-origin-when-cross-origin";
+  frame.setAttribute("allow", "autoplay; encrypted-media; fullscreen; picture-in-picture");
+  frame.setAttribute("allowfullscreen", "true");
+
+  current.parentNode.replaceChild(frame, current);
+  elementCache.youtubeBackground = frame;
+  return frame;
+}
+
+function buildYoutubeProviderUrl(template, selection) {
+  return String(template || "").replace(
+    /\{videoId\}/g,
+    encodeURIComponent(selection.videoId)
+  );
+}
+
+function getYoutubeStreamQualityScore(stream) {
+  const label = String(
+    stream && (stream.qualityLabel || stream.quality || stream.resolution || stream.size) || ""
+  );
+  const match = label.match(/(\d{3,4})p/i);
+  return match ? Number(match[1]) : 0;
+}
+
+function pickBestYoutubeStream(streams) {
+  const candidates = (Array.isArray(streams) ? streams : [])
+    .filter(function (stream) {
+      if (!stream || !stream.url) return false;
+      if (stream.videoOnly === true || stream.audioOnly === true) return false;
+      const type = String(stream.mimeType || stream.type || stream.container || "");
+      return !type || /mp4|video|mpegurl|hls/i.test(type);
+    })
+    .sort(function (a, b) {
+      return getYoutubeStreamQualityScore(b) - getYoutubeStreamQualityScore(a);
+    });
+
+  return candidates.length ? candidates[0].url : "";
+}
+
+function extractPipedStreamUrl(payload) {
+  if (!payload || payload.error) return "";
+  if (payload.hls) return payload.hls;
+  if (payload.hlsManifestUrl) return payload.hlsManifestUrl;
+  return pickBestYoutubeStream(payload.videoStreams || payload.video_streams);
+}
+
+function extractInvidiousStreamUrl(payload) {
+  if (!payload || payload.error) return "";
+  return pickBestYoutubeStream(payload.formatStreams || payload.format_streams);
+}
+
+async function resolveYoutubeDirectStream(selection) {
+  if (!selection || !selection.videoId) return null;
+
+  for (let index = 0; index < YOUTUBE.streamProviders.length; index++) {
+    const provider = YOUTUBE.streamProviders[index];
+    try {
+      const payload = await fetchJsonWithTimeout(
+        buildYoutubeProviderUrl(provider.endpoint, selection),
+        YOUTUBE.streamTimeoutMs
+      );
+      const url = provider.type === "piped"
+        ? extractPipedStreamUrl(payload)
+        : extractInvidiousStreamUrl(payload);
+      if (url) {
+        return {
+          url: url,
+          provider: provider.name
+        };
+      }
+    } catch (e) {}
+  }
+
+  return null;
+}
+
+function playYoutubeHtmlVideoBackground(streamUrl, thumbnail, selection, renderToken, onFailure) {
+  const video = getEl("bgVideo");
+  const image = getEl("bgImage");
+  if (!video || !streamUrl) return false;
+
+  stopAvplayBackground();
+  if (image) {
+    image.src = thumbnail;
+    image.hidden = false;
+  }
+
+  video.hidden = true;
+  video.muted = false;
+  video.volume = MEDIA.musicVolume;
+  video.loop = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  video.onplaying = function () {
+    if (renderToken !== youtubeBackgroundRequestToken || !youtubeBackgroundActive) return;
+    video.hidden = false;
+    if (image) image.hidden = true;
+    setStatus("youtubeStatus", "YouTube video oynuyor", "ok");
+    updateFooter("YouTube video oynuyor");
+    updateMediaScreenSaver();
+  };
+  video.onerror = function () {
+    if (renderToken !== youtubeBackgroundRequestToken || !youtubeBackgroundActive) return;
+    if (typeof onFailure === "function") onFailure();
+  };
+  video.onended = function () {
+    try {
+      video.currentTime = 0;
+      video.play();
+    } catch (e) {}
+  };
+  video.src = streamUrl;
+  try { video.load(); } catch (e) {}
+
+  try {
+    const playAttempt = video.play();
+    if (playAttempt && typeof playAttempt.catch === "function") {
+      playAttempt.catch(function () {
+        if (renderToken !== youtubeBackgroundRequestToken || !youtubeBackgroundActive) return;
+        if (typeof onFailure === "function") onFailure();
+      });
+    }
+    setText("youtubeTitle", selection.title || "YouTube video");
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function playYoutubeAvplayBackground(streamUrl, thumbnail, renderToken, onFailure) {
+  const image = getEl("bgImage");
+  if (!canUseAvplayBackground() || !streamUrl || !image) return false;
+
+  function fail() {
+    if (renderToken !== youtubeBackgroundRequestToken || !youtubeBackgroundActive) return;
+    setAvplayObjectVisible(false);
+    if (typeof onFailure === "function") onFailure();
+  }
+
+  function showVideo() {
+    if (renderToken !== youtubeBackgroundRequestToken || !youtubeBackgroundActive) return;
+    image.hidden = true;
+    setAvplayObjectVisible(true);
+    setStatus("youtubeStatus", "YouTube video oynuyor", "ok");
+    updateFooter("YouTube video oynuyor");
+    updateMediaScreenSaver();
+  }
+
+  image.src = thumbnail;
+  image.hidden = false;
+  stopBackgroundVideo();
+  stopAvplayBackground();
+
+  try {
+    webapis.avplay.open(streamUrl);
+    webapis.avplay.setListener({
+      onbufferingcomplete: function () {},
+      onerror: fail,
+      onstreamcompleted: function () {
+        try {
+          webapis.avplay.seekTo(0, function () {
+            try { webapis.avplay.play(); } catch (e) { fail(); }
+          }, fail);
+        } catch (e) {
+          fail();
+        }
+      }
+    });
+    try { webapis.avplay.setDisplayMethod("PLAYER_DISPLAY_MODE_FULL_SCREEN"); } catch (e) {}
+    const rect = getAvplayDisplayRect();
+    webapis.avplay.setDisplayRect(rect.x, rect.y, rect.width, rect.height);
+    avplayBackgroundFile = streamUrl;
+    webapis.avplay.prepareAsync(function () {
+      try {
+        webapis.avplay.play();
+        showVideo();
+      } catch (e) {
+        fail();
+      }
+    }, fail);
+    return true;
+  } catch (e) {
+    fail();
+    return false;
+  }
+}
+
+function playYoutubeDirectBackground(streamInfo, thumbnail, selection, renderToken, onFailure) {
+  if (!streamInfo || !streamInfo.url) return false;
+  if (playYoutubeAvplayBackground(streamInfo.url, thumbnail, renderToken, onFailure)) return true;
+  return playYoutubeHtmlVideoBackground(streamInfo.url, thumbnail, selection, renderToken, onFailure);
+}
+
+function replaceYoutubePlayerWithIframe(src) {
+  const current = document.getElementById("youtubePlayer");
+  const iframe = document.createElement("iframe");
+  iframe.id = "youtubePlayer";
+  iframe.src = src;
+  iframe.title = youtubeSelection && youtubeSelection.title ? youtubeSelection.title : "YouTube player";
+  iframe.referrerPolicy = "strict-origin-when-cross-origin";
+  iframe.allow = "autoplay; encrypted-media; fullscreen; picture-in-picture";
+  iframe.setAttribute("allow", "autoplay; encrypted-media; fullscreen; picture-in-picture");
+  iframe.setAttribute("allowfullscreen", "true");
+
+  if (current && current.parentNode) {
+    current.parentNode.replaceChild(iframe, current);
+  }
+  elementCache.youtubePlayer = iframe;
+  return iframe;
+}
+
+function destroyYoutubeApiPlayer() {
+  if (youtubePlayer && typeof youtubePlayer.destroy === "function") {
+    try { youtubePlayer.destroy(); } catch (e) {}
+  }
+  youtubePlayer = null;
+  youtubePlayerReady = false;
+}
+
+function loadYoutubeEmbedFallbackPlayer(selection, autoplay, fallbackIndex) {
+  if (!selection || !selection.videoId) return false;
+  const index = Number(fallbackIndex) || 0;
+  const embedUrls = getYoutubeEmbedUrls(selection, autoplay);
+  const embedUrl = embedUrls[index];
+  if (!embedUrl) return false;
+
+  destroyYoutubeApiPlayer();
+  youtubePlayerMode = "embed";
+  youtubePendingAutoplay = false;
+  youtubePlayerReady = true;
+  youtubePlayerState = autoplay ? 1 : 5;
+  updateYoutubePlaybackChrome();
+
+  const placeholder = getEl("youtubePlaceholder");
+  if (placeholder) placeholder.hidden = true;
+
+  const iframe = replaceYoutubePlayerWithIframe(embedUrl);
+  iframe.onload = function () {
+    if (autoplay) {
+      sendYoutubeIframePlayCommand(iframe);
+      scheduleYoutubeIframeAutoplay(iframe);
+    }
+  };
+  iframe.onerror = function () {
+    if (!loadYoutubeEmbedFallbackPlayer(selection, autoplay, index + 1)) {
+      markYoutubeVideoFailed(selection.videoId);
+      handleYoutubePlayerError({ data: 0 });
+    }
+  };
+
+  setStatus("youtubeStatus", autoplay ? "YouTube çalıyor" : "YouTube hazır", autoplay ? "ok" : "warn");
+  setText("youtubeTitle", selection.title || "YouTube video");
+  setText("youtubePlayerHint", "Oynatıcı açık • kontrolü ekrandan yap");
+  updateMediaScreenSaver();
+  return true;
+}
+
+function updateYoutubeTitleFromPlayer() {
+  if (!youtubePlayer || typeof youtubePlayer.getVideoData !== "function") return;
+  try {
+    const data = youtubePlayer.getVideoData();
+    if (data && data.title) {
+      youtubeSelection.title = data.title;
+      setText("youtubeTitle", data.title);
+      saveYoutubeSelection(youtubeSelection);
+    }
+  } catch (e) {}
+}
+
+function handleYoutubePlayerReady(event) {
+  youtubePlayerReady = true;
+  const placeholder = getEl("youtubePlaceholder");
+  if (placeholder) placeholder.hidden = true;
+  try { event.target.setVolume(Math.round(MEDIA.musicVolume * 100)); } catch (e) {}
+  setStatus("youtubeStatus", "YouTube hazır", "ok");
+  setText("youtubeTitle", youtubeSelection ? youtubeSelection.title : "YouTube oynatıcı hazır");
+  if (youtubePendingAutoplay) {
+    youtubePendingAutoplay = false;
+    try { event.target.playVideo(); } catch (e) {}
+  }
+}
+
+function handleYoutubePlayerState(event) {
+  youtubePlayerState = Number(event.data);
+  updateYoutubePlaybackChrome();
+  if (youtubePlayerState === 1) {
+    const audio = getEl("bgMusic");
+    if (audio && !audio.paused) audio.pause();
+    setStatus("youtubeStatus", "YouTube çalıyor", "ok");
+    updateYoutubeTitleFromPlayer();
+    updateFooter("YouTube çalıyor");
+  } else if (youtubePlayerState === 2) {
+    setStatus("youtubeStatus", "YouTube duraklatıldı", "warn");
+    updateFooter("YouTube duraklatıldı");
+  } else if (youtubePlayerState === 3) {
+    setStatus("youtubeStatus", "YouTube yükleniyor", "warn");
+  } else if (youtubePlayerState === 0 || youtubePlayerState === 5) {
+    setStatus("youtubeStatus", "YouTube hazır", "ok");
+    updateYoutubeTitleFromPlayer();
+  }
+  updateMediaScreenSaver();
+}
+
+function markYoutubeVideoFailed(videoId) {
+  if (!videoId) return;
+  youtubeFailedVideos[videoId] = true;
+
+  try {
+    const saved = JSON.parse(getStoredYoutubeValue(YOUTUBE.selectionStorage) || "null");
+    if (saved && saved.videoId === videoId) {
+      setStoredYoutubeValue(YOUTUBE.selectionStorage, "");
+    }
+  } catch (e) {}
+}
+
+function getYoutubePlayerErrorHint(errorCode) {
+  if (Number(errorCode) === 153) {
+    return "YouTube embed reddetti • başka sonuç seç";
+  }
+  return "Başka bir sonuç seç";
+}
+
+function handleYoutubePlayerError(event) {
+  const errorCode = event && typeof event.data !== "undefined" ? Number(event.data) : 0;
+  youtubePlayerState = -1;
+  youtubePendingAutoplay = false;
+  updateYoutubePlaybackChrome();
+  if (errorCode === 153 && youtubeSelection && youtubeSelection.videoId) {
+    youtubePreferEmbedFallback = true;
+    if (loadYoutubeEmbedFallbackPlayer(youtubeSelection, true, 0)) return;
+  }
+
+  if (youtubeSelection && youtubeSelection.videoId) {
+    markYoutubeVideoFailed(youtubeSelection.videoId);
+  }
+  setStatus("youtubeStatus", "YouTube oynatma hatası", "bad");
+  setText("youtubePlayerHint", getYoutubePlayerErrorHint(errorCode));
+  updateMediaScreenSaver();
+}
+
+function clearEmbeddedYoutubePlayer() {
+  destroyYoutubeApiPlayer();
+  const current = document.getElementById("youtubePlayer");
+  if (current && current.tagName === "IFRAME") {
+    current.src = "about:blank";
+  }
+}
+
+function stopYoutubeBackground(restoreAppBackground) {
+  youtubeBackgroundRequestToken++;
+  const background = getEl("youtubeBackground");
+  if (background) {
+    background.onerror = null;
+    background.onload = null;
+    background.classList.remove("youtubeAudioOnly");
+    background.hidden = true;
+    background.src = "about:blank";
+  }
+  youtubeBackgroundActive = false;
+  youtubePlayerState = 2;
+  updateYoutubePlaybackChrome();
+  if (restoreAppBackground) applyBackgroundSelection(settings, true);
+  updateMediaScreenSaver();
+}
+
+function startYoutubeEmbedBackground(selection, autoplay, fallbackIndex, showClip) {
+  if (!selection || !selection.videoId) return false;
+
+  let background = getEl("youtubeBackground");
+  const image = getEl("bgImage");
+  const preview = getEl("youtubePreview");
+  const placeholder = getEl("youtubePlaceholder");
+  const index = Number(fallbackIndex) || 0;
+  const embedUrls = getYoutubeEmbedUrls(selection, autoplay);
+  const embedUrl = embedUrls[index];
+  const shouldShowClip = showClip === true;
+  if (!background) return false;
+  if (!embedUrl) {
+    stopYoutubeBackground(true);
+    setStatus("youtubeStatus", "YouTube oynatma hatası", "bad");
+    setText("youtubePlayerHint", "Başka bir sonuç seç");
+    updateFooter("YouTube oynatma hatası");
+    return false;
+  }
+
+  const thumbnail = selection.thumbnail ||
+    "https://i.ytimg.com/vi/" + selection.videoId + "/hqdefault.jpg";
+
+  clearEmbeddedYoutubePlayer();
+  youtubeBackgroundRequestToken++;
+  if (shouldShowClip) {
+    stopAvplayBackground();
+    stopBackgroundVideo();
+  } else {
+    youtubeBackgroundActive = false;
+    applyBackgroundSelection(settings, true);
+  }
+  background = recreateYoutubeBackgroundFrame();
+  if (!background) return false;
+
+  if (image && shouldShowClip) {
+    image.src = thumbnail;
+    image.hidden = false;
+  }
+  if (preview) {
+    preview.src = thumbnail;
+    preview.hidden = false;
+  }
+  if (placeholder) placeholder.hidden = true;
+
+  youtubeBackgroundActive = true;
+  youtubePlayerMode = shouldShowClip ? "background" : "audio";
+  youtubePlayerReady = true;
+  youtubePlayerState = autoplay ? 1 : 5;
+  youtubePendingAutoplay = false;
+  updateYoutubePlaybackChrome();
+
+  background.hidden = false;
+  background.classList.toggle("youtubeAudioOnly", !shouldShowClip);
+  background.referrerPolicy = "strict-origin-when-cross-origin";
+  background.allow = "autoplay; encrypted-media; fullscreen; picture-in-picture";
+  background.setAttribute("allow", "autoplay; encrypted-media; fullscreen; picture-in-picture");
+  background.setAttribute("allowfullscreen", "true");
+  background.onload = function () {
+    if (!youtubeBackgroundActive || background.hidden) return;
+    sendYoutubeIframePlayCommand(background);
+    scheduleYoutubeIframeAutoplay(background);
+    setTimeout(restoreDashboardFocus, 0);
+  };
+  background.onerror = function () {
+    startYoutubeEmbedBackground(selection, autoplay, index + 1, shouldShowClip);
+  };
+  background.src = embedUrl;
+  if (autoplay) {
+    sendYoutubeIframePlayCommand(background);
+    scheduleYoutubeIframeAutoplay(background);
+    setTimeout(restoreDashboardFocus, 0);
+  }
+
+  setStatus("youtubeStatus", shouldShowClip ? "YouTube arka planda" : "YouTube ses çalıyor", "ok");
+  setText("youtubeTitle", selection.title || "YouTube video");
+  setText("youtubePlayerHint", shouldShowClip
+    ? "Play/Pause: arka planı durdur • OK: müzik değiştir"
+    : "Klip gizli • OK: müzik değiştir • Play/Pause: durdur");
+  updateFooter(shouldShowClip ? "YouTube arka planda" : "YouTube ses çalıyor");
+  updateMediaScreenSaver();
+  return true;
+}
+
+function startYoutubeBackground(selection, autoplay, fallbackIndex, showClip) {
+  if (!selection || !selection.videoId) return false;
+  const shouldShowClip = showClip === true;
+  if (!shouldShowClip) {
+    return startYoutubeEmbedBackground(selection, autoplay, Number(fallbackIndex) || 0, false);
+  }
+  if (getYoutubeRelayUrls().length) {
+    return startYoutubeEmbedBackground(selection, autoplay, Number(fallbackIndex) || 0, shouldShowClip);
+  }
+  if (Number(fallbackIndex) > 0) {
+    return startYoutubeEmbedBackground(selection, autoplay, fallbackIndex, shouldShowClip);
+  }
+
+  const background = getEl("youtubeBackground");
+  const image = getEl("bgImage");
+  const preview = getEl("youtubePreview");
+  const placeholder = getEl("youtubePlaceholder");
+  const thumbnail = selection.thumbnail ||
+    "https://i.ytimg.com/vi/" + selection.videoId + "/hqdefault.jpg";
+  const renderToken = ++youtubeBackgroundRequestToken;
+
+  stopAvplayBackground();
+  stopBackgroundVideo();
+  clearEmbeddedYoutubePlayer();
+
+  if (background) {
+    background.onerror = null;
+    background.onload = null;
+    background.hidden = true;
+    background.src = "about:blank";
+  }
+  if (image) {
+    image.src = thumbnail;
+    image.hidden = false;
+  }
+  if (preview) {
+    preview.src = thumbnail;
+    preview.hidden = false;
+  }
+  if (placeholder) placeholder.hidden = true;
+
+  youtubeBackgroundActive = true;
+  youtubePlayerMode = "background";
+  youtubePlayerReady = true;
+  youtubePlayerState = autoplay ? 3 : 5;
+  youtubePendingAutoplay = false;
+  updateYoutubePlaybackChrome();
+
+  setStatus("youtubeStatus", "YouTube stream aranıyor", "warn");
+  setText("youtubeTitle", selection.title || "YouTube video");
+  setText("youtubePlayerHint", "Otomatik başlatılıyor • Play/Pause: durdur");
+  updateFooter("YouTube stream aranıyor");
+  updateMediaScreenSaver();
+
+  resolveYoutubeDirectStream(selection).then(function (streamInfo) {
+    if (renderToken !== youtubeBackgroundRequestToken || !youtubeBackgroundActive) return;
+
+    function fallbackToEmbed() {
+      if (renderToken !== youtubeBackgroundRequestToken || !youtubeBackgroundActive) return;
+      startYoutubeEmbedBackground(selection, autoplay, 0, shouldShowClip);
+    }
+
+    if (streamInfo && playYoutubeDirectBackground(
+      streamInfo,
+      thumbnail,
+      selection,
+      renderToken,
+      fallbackToEmbed
+    )) {
+      youtubePlayerState = autoplay ? 1 : 5;
+      updateYoutubePlaybackChrome();
+      setStatus("youtubeStatus", "YouTube video başlıyor", "ok");
+      setText("youtubePlayerHint", "Play/Pause: arka planı durdur • OK: müzik değiştir");
+      updateFooter("YouTube video başlıyor");
+      return;
+    }
+
+    fallbackToEmbed();
+  }).catch(function () {
+    if (renderToken !== youtubeBackgroundRequestToken || !youtubeBackgroundActive) return;
+    startYoutubeEmbedBackground(selection, autoplay, 0, shouldShowClip);
+  });
+
+  return true;
+}
+
+function showYoutubeSelectionPreview(selection) {
+  const preview = getEl("youtubePreview");
+  const placeholder = getEl("youtubePlaceholder");
+
+  clearEmbeddedYoutubePlayer();
+  youtubePlayerMode = "preview";
+  youtubePlayerReady = !!(selection && selection.videoId);
+  youtubePlayerState = youtubePlayerReady ? 5 : -1;
+  youtubePendingAutoplay = false;
+  updateYoutubePlaybackChrome();
+
+  if (preview) {
+    if (selection && selection.videoId) {
+      preview.src = selection.thumbnail ||
+        "https://i.ytimg.com/vi/" + selection.videoId + "/hqdefault.jpg";
+      preview.hidden = false;
+    } else {
+      preview.hidden = true;
+      preview.removeAttribute("src");
+    }
+  }
+
+  if (placeholder) placeholder.hidden = !!(selection && selection.videoId);
+  setStatus("youtubeStatus", selection ? "YouTube hazır" : "Müzik seçilmedi", selection ? "ok" : "warn");
+  setText("youtubeTitle", selection ? selection.title || "YouTube video" : "YouTube oynatıcı hazır");
+  setText("youtubePlayerHint", selection ? "OK: arka planda oynat" : "OK: müzik değiştir • Play/Pause: oynat");
+  updateMediaScreenSaver();
+}
+
+function loadYoutubePlayer(selection, autoplay) {
+  if (!selection || !selection.videoId) return;
+  if (youtubeFailedVideos[selection.videoId]) {
+    setStatus("youtubeStatus", "YouTube oynatma hatası", "bad");
+    setText("youtubePlayerHint", "Bu video oynatılamadı • başka sonuç seç");
+    return;
+  }
+  if (autoplay) {
+    startYoutubeBackground(selection, true, 0, shouldPlayYoutubeClip(selection));
+  } else {
+    showYoutubeSelectionPreview(selection);
+  }
+}
+
+function selectYoutubeResult(index) {
+  const selection = youtubeResults[index];
+  if (!selection) return;
+  if (youtubeFailedVideos[selection.videoId]) {
+    setYoutubeMessage("Bu video oynatılamadı, başka sonuç seç.", "bad");
+    return;
+  }
+
+  if (!showYoutubePlayModePrompt(selection)) {
+    const fallbackSelection = Object.assign({}, selection, { playClip: false });
+    saveYoutubeSelection(fallbackSelection);
+    closeYoutubeSearch();
+    const audio = getEl("bgMusic");
+    if (audio && !audio.paused) audio.pause();
+    loadYoutubePlayer(fallbackSelection, true);
+    focusFirstCard();
+  }
+}
+
+function playYoutube() {
+  if (!youtubeSelection || youtubeFailedVideos[youtubeSelection.videoId]) {
+    openYoutubeSearch();
+    return;
+  }
+  const audio = getEl("bgMusic");
+  if (audio && !audio.paused) audio.pause();
+  startYoutubeBackground(youtubeSelection, true, 0, shouldPlayYoutubeClip(youtubeSelection));
+}
+
+function pauseYoutube() {
+  if (!youtubePlayerReady) return;
+  stopYoutubeBackground(true);
+  showYoutubeSelectionPreview(youtubeSelection);
+  setStatus("youtubeStatus", "YouTube arka planı durdu", "warn");
+  setText("youtubePlayerHint", "OK: arka planda oynat");
+  updateFooter("YouTube arka planı durdu");
+}
+
+function toggleYoutube() {
+  if (youtubeBackgroundActive || youtubePlayerState === 1) pauseYoutube();
+  else playYoutube();
+}
+
+function handleYoutubeOverlayKey(key) {
+  if (youtubePlayModePromptOpen) {
+    if (key === 10009 || key === 27) {
+      hideYoutubePlayModePrompt();
+      setYoutubeMessage("Sonuç seç veya yeni arama yap.", "ok");
+      if (youtubeResults.length) setActiveYoutubeResult(activeYoutubeResultIndex, true);
+      return true;
+    }
+
+    if (key === 37 || key === 38 || key === 39 || key === 40) {
+      setActiveYoutubePlayMode(activeYoutubePlayModeIndex === 0 ? 1 : 0, true);
+      return true;
+    }
+
+    if (key === 13) {
+      confirmYoutubePlayMode(activeYoutubePlayModeIndex === 0);
+      return true;
+    }
+
+    return false;
+  }
+
+  if (key === 10009 || key === 27) {
+    closeYoutubeSearch();
+    return true;
+  }
+
+  const active = document.activeElement;
+  if (active && active.id === "youtubeSearchInput" && key === 13) {
+    searchYoutube();
+    return true;
+  }
+
+  if (active && active.classList && active.classList.contains("youtubeResult")) {
+    if (key === 37 || key === 39) {
+      setActiveYoutubeResult(activeYoutubeResultIndex + (key === 39 ? 1 : -1), true);
+      return true;
+    }
+    if (key === 38 || key === 40) {
+      setActiveYoutubeResult(activeYoutubeResultIndex + (key === 40 ? 2 : -2), true);
+      return true;
+    }
+    if (key === 13) {
+      selectYoutubeResult(activeYoutubeResultIndex);
+      return true;
+    }
+  }
+  return false;
+}
+
+function initYoutube() {
+  loadYoutubeSelection();
+
+  const searchCard = document.querySelector(".youtubeSearchCard");
+  const playerCard = document.querySelector(".youtubePlayerCard");
+  const miniCard = document.querySelector(".youtubeMiniCard");
+  const searchForm = getEl("youtubeSearchForm");
+  const closeButton = getEl("youtubeCloseButton");
+  const clipButton = getEl("youtubePlayWithClipButton");
+  const audioOnlyButton = getEl("youtubeAudioOnlyButton");
+
+  if (searchCard) searchCard.addEventListener("click", openYoutubeSearch);
+  if (playerCard) playerCard.addEventListener("click", function () {
+    if (youtubeBackgroundActive) openYoutubeSearch();
+    else if (youtubeSelection) playYoutube();
+    else openYoutubeSearch();
+  });
+  if (miniCard) miniCard.addEventListener("click", openYoutubeSearch);
+  if (searchForm) searchForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    searchYoutube();
+  });
+  if (closeButton) closeButton.addEventListener("click", closeYoutubeSearch);
+  if (clipButton) clipButton.addEventListener("click", function () {
+    setActiveYoutubePlayMode(0, false);
+    confirmYoutubePlayMode(true);
+  });
+  if (audioOnlyButton) audioOnlyButton.addEventListener("click", function () {
+    setActiveYoutubePlayMode(1, false);
+    confirmYoutubePlayMode(false);
+  });
+
+  if (youtubeSelection) loadYoutubePlayer(youtubeSelection, true);
+}
 function normalizeSettings(source) {
   const normalized = source || {};
   const hasImages = backgroundLibrary.images.length > 0;
@@ -2418,7 +3789,8 @@ function normalizeSettings(source) {
     ),
     backgroundMode: backgroundMode,
     backgroundImageIndex: clampBackgroundIndex("image", normalized.backgroundImageIndex),
-    backgroundVideoIndex: clampBackgroundIndex("video", normalized.backgroundVideoIndex)
+    backgroundVideoIndex: clampBackgroundIndex("video", normalized.backgroundVideoIndex),
+    youtubeRelayUrl: normalizeYoutubeRelayUrl(normalized.youtubeRelayUrl)
   };
 }
 
@@ -2447,6 +3819,9 @@ function applyDashboardSettings(source) {
 
   const audio = getEl("bgMusic");
   if (audio) audio.volume = MEDIA.musicVolume;
+  if (youtubePlayerReady && youtubePlayer && typeof youtubePlayer.setVolume === "function") {
+    try { youtubePlayer.setVolume(values.musicVolume); } catch (e) {}
+  }
 
   const activeBackgroundKind = values.backgroundMode === "video" ? "video" : "image";
   const activeBackgroundLabel = getBackgroundOptionValue(
@@ -2478,6 +3853,7 @@ function applyDashboardSettings(source) {
   setText("settingBackgroundModeValue", backgroundModeLabel);
   setText("settingBackgroundImageValue", getBackgroundOptionValue("image", values.backgroundImageIndex));
   setText("settingBackgroundVideoValue", getBackgroundOptionValue("video", values.backgroundVideoIndex));
+  setText("settingYoutubeRelayValue", getYoutubeRelayLabel(values.youtubeRelayUrl));
   setText(
     "settingLanguageValue",
     values.language === "en" ? "English" : "Türkçe"
@@ -2541,7 +3917,7 @@ function closeSettings(saveChanges) {
 
 function adjustSetting(direction) {
   if (!settingsDraft) return;
-  const backgroundChanged = activeSettingIndex >= 3;
+  const backgroundChanged = activeSettingIndex >= 3 && activeSettingIndex <= 5;
 
   if (activeSettingIndex === 0) {
     settingsDraft.musicVolume = Math.max(
@@ -2572,6 +3948,15 @@ function adjustSetting(direction) {
       (settingsDraft.backgroundVideoIndex + direction + backgroundLibrary.videos.length) %
       backgroundLibrary.videos.length;
   } else if (activeSettingIndex === 6) {
+    const currentRelay = settingsDraft.youtubeRelayUrl || "";
+    let optionIndex = 0;
+    for (let index = 0; index < YOUTUBE.relayOptions.length; index += 1) {
+      if (YOUTUBE.relayOptions[index].value === currentRelay) optionIndex = index;
+    }
+    optionIndex =
+      (optionIndex + direction + YOUTUBE.relayOptions.length) % YOUTUBE.relayOptions.length;
+    settingsDraft.youtubeRelayUrl = YOUTUBE.relayOptions[optionIndex].value;
+  } else if (activeSettingIndex === 7) {
     settingsDraft.language = settingsDraft.language === "en" ? "tr" : "en";
   }
 
@@ -2710,6 +4095,11 @@ function setupRemoteKeys() {
       return;
     }
 
+    if (youtubeOverlayOpen) {
+      if (handleYoutubeOverlayKey(key)) event.preventDefault();
+      return;
+    }
+
     if (key >= 37 && key <= 40) {
       event.preventDefault();
       moveCardFocus(key);
@@ -2717,6 +4107,11 @@ function setupRemoteKeys() {
     }
 
     if (key === 10009) {
+      if (youtubeBackgroundActive) {
+        event.preventDefault();
+        pauseYoutube();
+        return;
+      }
       try {
         if (window.tizen && tizen.application) {
           tizen.application.getCurrentApplication().exit();
@@ -2737,6 +4132,20 @@ function setupRemoteKeys() {
         runInternetTest();
       } else if (activeElement && activeElement.classList.contains("soundCard")) {
         toggleTvMute();
+      } else if (
+        activeElement &&
+        (activeElement.classList.contains("youtubeSearchCard") ||
+          activeElement.classList.contains("youtubeMiniCard"))
+      ) {
+        openYoutubeSearch();
+      } else if (activeElement && activeElement.classList.contains("youtubePlayerCard")) {
+        if (youtubeBackgroundActive) openYoutubeSearch();
+        else if (youtubeSelection) playYoutube();
+        else openYoutubeSearch();
+      } else if (youtubeBackgroundActive) {
+        const miniCard = document.querySelector(".youtubeMiniCard");
+        if (miniCard && miniCard.offsetWidth > 0 && miniCard.offsetHeight > 0) miniCard.focus();
+        else openYoutubeSearch();
       } else {
         toggleMusic();
       }
@@ -2748,19 +4157,33 @@ function setupRemoteKeys() {
     // to toggle instead of a fixed action.
     if (key === 415) {
       event.preventDefault();
-      playMusic();
+      if (youtubeBackgroundActive) {
+        pauseYoutube();
+      } else if (youtubeSelection) {
+        playYoutube();
+      } else {
+        playMusic();
+      }
       return;
     }
 
     if (key === 19) {
       event.preventDefault();
-      pauseMusic();
+      if (youtubeSelection) {
+        pauseYoutube();
+      } else {
+        pauseMusic();
+      }
       return;
     }
 
     if (key === 10252) {
       event.preventDefault();
-      toggleMusic();
+      if (youtubeSelection) {
+        toggleYoutube();
+      } else {
+        toggleMusic();
+      }
       return;
     }
 
@@ -2834,6 +4257,7 @@ function boot() {
   clearStoredLocationData();
   loadDashboardSettings();
   initMusic();
+  initYoutube();
   initLanguageSelector();
   initSettings();
   initNetworkTest();
@@ -2851,6 +4275,7 @@ function boot() {
       stopRuntimeTimers();
       stopAvplayBackground();
       stopBackgroundVideo();
+      pauseYoutube();
       setScreenSaverEnabled(true);
     } else {
       applyBackgroundSelection(settingsOpen && settingsDraft ? settingsDraft : settings, true);

@@ -11,10 +11,10 @@ Fully navigable with the TV remote.
 │  21:47          18°  Partly cloudy        (background video) │
 │  9 October 2026  ☀ 06:12 ↓ 17:34                            │
 ├────────────────────┬────────────────────┬────────────────────┤
-│ Left column        │                    │ Right column       │
-│ • TV model info    │                    │ • Network/Internet │
-│ • System           │                    │ • TV / HDMI source │
-│ • System resources │                    │ • Sound            │
+│ Left column        │ Middle column      │ Right column       │
+│ • TV model info    │ • YouTube search   │ • Network/Internet │
+│ • System           │ • YouTube player   │ • TV / HDMI source │
+│ • System resources │ • Now-playing card │ • Sound            │
 │ • Panel            │                    │ • Music            │
 │                    │                    │ • Location         │
 │                    │                    │ • Settings         │
@@ -45,16 +45,18 @@ simulator, debugging on a real TV, and troubleshooting.
 |---|---|
 | Arrow keys | Move between cards (nearest card in that direction wins) |
 | OK | Open the focused card / play-pause |
-| Back | Exit the app |
-| Play / Pause | Start or pause the music |
+| Back | Exit the app / close the YouTube overlay |
+| Play / Pause | Play or pause the active YouTube video, otherwise the music |
 | Volume up/down/mute | Adjust TV volume and mute |
 
-On the Sound card, OK toggles mute. The Location card is display-only.
+On the Sound card, OK toggles mute. The Location card is display-only. When a
+YouTube video is active, Play/Pause and Back control it; the on-screen overlay
+also works with the remote (arrows to move, OK to select, Back to close).
 
 ## Architecture
 
 No framework, no build system. `index.html` + `style.css` + `main.js`
-(one file, ~2800 lines) plus the `config.xml` manifest.
+(one file, ~4300 lines) plus the `config.xml` manifest.
 
 Three separate data sources are used:
 
@@ -65,7 +67,8 @@ Three separate data sources are used:
    storage. Also `tizen.application`, `tizen.tvinputdevice`,
    `webapis.avplay`, `webapis.appcommon`.
 3. **Public web APIs** — Open-Meteo (weather),
-   geojs / ipwho.is (IP location), speed.cloudflare.com (speed test).
+   geojs / ipwho.is (IP location), speed.cloudflare.com (speed test),
+   Piped (`api.piped.private.coffee`) for YouTube search and stream metadata.
 
 ### Background playback
 
@@ -155,6 +158,36 @@ next launch.
 > 20 MB, so extra files add their full size to the package and to install
 > time. Audio is already compressed; re-encoding usually saves little.
 
+### YouTube
+
+Search and metadata come straight from Piped
+(`api.piped.private.coffee`) on each TV — no proxy. Video bytes are streamed
+from Piped's proxy / Googlevideo directly to the TV. Only the small embed HTML
+page passes through a relay, which exists because the Tizen app runs on a
+`file://` origin that YouTube rejects for autoplay.
+
+The embed falls back through this chain, skipping dead addresses:
+
+```
+selected/active relays  →  Piped embed  →  youtube-nocookie  →  youtube.com
+```
+
+Settings → **YouTube relay** picks the active source:
+
+- **Otomatik** — try every configured relay in order, then the fallbacks.
+- **Cloudflare** — force your own Worker (set its URL in `YOUTUBE.relayOptions`).
+- **Yedek relay** — force the community backup relay.
+
+If the relay is down, a video that is already playing keeps running; only
+opening a *new* video is affected, and it automatically drops to the next
+fallback. Because search and streaming are direct, your own domain is never a
+single point of failure — it only serves a tiny HTML page.
+
+Deploy your own relay with the included Cloudflare Worker; see
+[youtube-relay/README.md](youtube-relay/README.md). After deploying, replace
+the `REPLACE-WITH-YOUR-WORKER` placeholder in `main.js` with your real
+`workers.dev` address.
+
 ### Performance
 
 `PERFORMANCE` constants: clock 60 s, system 30 s, sources 2 min, storage
@@ -223,11 +256,17 @@ node tools/scan-secrets.mjs      # secrets/PII across all commits (text files on
 ```
 
 `check-i18n.mjs` collects the Turkish literals passed to `setText`,
-`setStatus` and `updateFooter`, reports the ones missing from `EN_DYNAMIC`,
-and also fails on mojibake such as `artÄ±rÄ±ldÄ±`. `smoke.mjs` parses
-`main.js`, runs `boot()` with a stubbed DOM, exercises the language/settings
-and remote-key flows, and checks for references to removed functions and for
+`setStatus`, `setYoutubeMessage` and `updateFooter`, reports the ones missing
+from `EN_DYNAMIC`, and also fails on mojibake such as `artÄ±rÄ±ldÄ±`.
+`smoke.mjs` parses `main.js`, runs `boot()` with a stubbed DOM, exercises the
+language/settings and remote-key flows, and checks for dead functions and for
 element ids that no longer exist in the HTML.
+
+The relay has its own dependency-free test suite:
+
+```bash
+node --test youtube-relay/test/*.test.mjs
+```
 
 ## Security
 
@@ -253,7 +292,12 @@ INSTALLING.md       Installation tutorial
 bg*.mp4 / bg*.jpg   Background media files (1080p30, compressed)
 music-tv.mp3        Bundled music
 tools/              Maintenance and verification scripts
+youtube-relay/      Cloudflare Worker (embed relay) + tests + deploy guide
 ```
+
+No build system is needed for the app itself. `youtube-relay/` is only needed
+if you want to host your own relay; it has a separate `package.json` for
+Wrangler.
 
 ## License
 
