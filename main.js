@@ -96,12 +96,20 @@ const EN_DYNAMIC = {
   "Gerçek TV veya emülatörde görüntülenir": "Visible on a real TV or emulator",
   "Tarayıcı modu": "Browser mode",
   "Sistem bilgisi TV'de görünür": "System info is visible on TV",
+  "CPU bilgisi TV'de görünür": "CPU info is visible on TV",
+  "CPU modeli bu modelde yok": "CPU model unavailable on this device",
+  "CPU bilgisi okunamadı": "CPU info could not be read",
+  "CPU bilgisi desteklenmiyor": "CPU info is not supported",
   "Build okunamadı": "Build could not be read",
   "Build desteklenmiyor": "Build is not supported",
   "Bilinmiyor": "Unknown",
   "Parlaklık TV'de görünür": "Brightness is visible on TV",
   "Parlaklık desteklenmiyor": "Brightness is not supported",
   "Parlaklık okunamadı": "Brightness could not be read",
+  "Fiziksel panel TV'de görünür": "Physical panel info is visible on TV",
+  "Fiziksel boyut bu modelde yok": "Physical size unavailable on this model",
+  "Panel bilgisi okunamadı": "Panel info could not be read",
+  "Panel bilgisi desteklenmiyor": "Panel info is not supported",
   "Çevrimdışı": "Offline",
   "Çevrimiçi": "Online",
   "Ağ geçidine bağlantı kurulamadı": "Could not reach the network gateway",
@@ -135,6 +143,17 @@ const EN_DYNAMIC = {
   "Kaynak bilgisi bu modelde yok": "Source information is unavailable on this model",
   "Gerçek TV'de HDMI / TV kaynağı görünür": "HDMI / TV source is visible on a real TV",
   "HDR / enerji bilgisi gerçek TV'de görünür": "HDR / energy information is visible on a real TV",
+  "HDR destekli": "HDR supported",
+  "HDR yok": "No HDR",
+  "HDR10+ destekli": "HDR10+ supported",
+  "HDR10+ yok": "No HDR10+",
+  "Dolby Vision destekli": "Dolby Vision supported",
+  "Dolby Vision yok": "No Dolby Vision",
+  "Dolby Atmos destekli": "Dolby Atmos supported",
+  "Dolby Atmos yok": "No Dolby Atmos",
+  "açık": "on",
+  "kapalı": "off",
+  "otomatik": "auto",
   "Ses bilgisi gerçek TV'de görünür": "Sound information is visible on a real TV",
   "Ses bilgisi alınamadı": "Sound information unavailable",
   "Sessiz mod açık": "Muted",
@@ -1479,6 +1498,7 @@ function updateDisplayResolution() {
   let panelResolved = false;
 
   setText("resolution", "Uygulama alanı: " + fallbackWidth + " × " + fallbackHeight);
+  setText("panelSize", "Fiziksel panel TV'de görünür");
   setText("brightness", "Parlaklık TV'de görünür");
 
   try {
@@ -1509,10 +1529,30 @@ function updateDisplayResolution() {
       tizen.systeminfo.getPropertyValue("PANEL", function (panel) {
         panelResolved = true;
         setText("resolution", "Panel: " + panel.panelWidth + " × " + panel.panelHeight);
-      }, function () {});
+
+        const physical = [];
+        if (typeof panel.physicalWidth === "number" && panel.physicalWidth > 0 &&
+            typeof panel.physicalHeight === "number" && panel.physicalHeight > 0) {
+          const diagonalInch = Math.sqrt(
+            panel.physicalWidth * panel.physicalWidth + panel.physicalHeight * panel.physicalHeight
+          ) / 25.4;
+          physical.push(Math.round(diagonalInch) + " inç");
+        }
+        if (typeof panel.ppi === "number" && panel.ppi > 0) {
+          physical.push(Math.round(panel.ppi) + " PPI");
+        }
+        setText(
+          "panelSize",
+          physical.length ? physical.join(" • ") : "Fiziksel boyut bu modelde yok"
+        );
+      }, function () {
+        setText("panelSize", "Panel bilgisi okunamadı");
+      });
       return;
     }
-  } catch (e) {}
+  } catch (e) {
+    setText("panelSize", "Panel bilgisi desteklenmiyor");
+  }
 }
 
 function getSamsungTvIp() {
@@ -1684,6 +1724,7 @@ function initNetworkTest() {
 function updateResourceInfo() {
   if (!(window.tizen && tizen.systeminfo)) {
     setStatus("cpuValue", "--%", "warn");
+    setText("cpuDetails", "CPU bilgisi TV'de görünür");
     setText("ramValue", "TV'de görünür");
     setText("storageValue", "TV'de görünür");
     setText("usbStorage", "USB bilgisi gerçek TV'de görünür");
@@ -1700,12 +1741,25 @@ function updateResourceInfo() {
       systemSnapshot.cpu = load;
       setStatus("cpuValue", load + "%", load >= 90 ? "bad" : load >= 75 ? "warn" : "ok");
       setMetricBar("cpuBar", load);
+
+      const cpuDetails = [];
+      if (cpu.model) cpuDetails.push(cpu.model);
+      if (typeof cpu.cores === "number") cpuDetails.push(cpu.cores + " çekirdek");
+      if (typeof cpu.maxFreq === "number" && cpu.maxFreq > 0) {
+        cpuDetails.push(Math.round(cpu.maxFreq) + " MHz");
+      }
+      setText(
+        "cpuDetails",
+        cpuDetails.length ? cpuDetails.join(" • ") : "CPU modeli bu modelde yok"
+      );
       updateHealthStatus();
     }, function () {
       setStatus("cpuValue", "Okunamadı", "warn");
+      setText("cpuDetails", "CPU bilgisi okunamadı");
     });
   } catch (e) {
     setStatus("cpuValue", "Desteklenmiyor", "warn");
+    setText("cpuDetails", "CPU bilgisi desteklenmiyor");
   }
 
   try {
@@ -1900,6 +1954,32 @@ function updateAvInfo() {
   try {
     if (typeof webapis.avinfo.isHdrTvSupport === "function") {
       details.push(webapis.avinfo.isHdrTvSupport() ? "HDR destekli" : "HDR yok");
+    }
+  } catch (e) {}
+
+  try {
+    if (typeof webapis.avinfo.isHdr10PlusSupport === "function") {
+      details.push(webapis.avinfo.isHdr10PlusSupport() ? "HDR10+ destekli" : "HDR10+ yok");
+    }
+  } catch (e) {}
+
+  try {
+    if (typeof webapis.avinfo.isDolbyVisionSupport === "function") {
+      details.push(webapis.avinfo.isDolbyVisionSupport() ? "Dolby Vision destekli" : "Dolby Vision yok");
+    }
+  } catch (e) {}
+
+  try {
+    if (typeof webapis.avinfo.isDolbyAtmosSupport === "function") {
+      details.push(webapis.avinfo.isDolbyAtmosSupport() ? "Dolby Atmos destekli" : "Dolby Atmos yok");
+    }
+  } catch (e) {}
+
+  try {
+    if (typeof webapis.avinfo.getGameMode === "function") {
+      const gameMode = String(webapis.avinfo.getGameMode());
+      const gameNames = { ON: "açık", OFF: "kapalı", AUTO: "otomatik" };
+      details.push("Oyun modu: " + (gameNames[gameMode] || gameMode));
     }
   } catch (e) {}
 
