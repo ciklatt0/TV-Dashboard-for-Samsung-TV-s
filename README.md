@@ -23,11 +23,11 @@ Fully navigable with the TV remote.
 
 ## Screenshots
 
-<!-- Screenshot slots: replace with 2-3 images in docs/screenshots/
-![TV dashboard](docs/screenshots/dashboard-1.jpg)
-![TV dashboard](docs/screenshots/dashboard-2.jpg)
-![TV dashboard](docs/screenshots/dashboard-3.jpg)
--->
+![TV dashboard preview](docs/screenshots/dashboard-1.png)
+
+![TV dashboard preview](docs/screenshots/dashboard-2.png)
+
+<!-- More screenshots can be added here as docs/screenshots/dashboard-3.png -->
 
 ## Installation
 
