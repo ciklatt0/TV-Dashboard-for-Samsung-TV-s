@@ -28,6 +28,7 @@ const I18N = {
     tvIp: "TV IP",
     source: "TV / HDMI Kaynağı",
     sound: "Ses",
+    soundHint: "◀▶ ses • OK: sessiz aç / kapat",
     music: "Müzik",
     location: "Konum",
     locationDescription: "Otomatik hava durumu konumu",
@@ -64,6 +65,7 @@ const I18N = {
     tvIp: "TV IP",
     source: "TV / HDMI Source",
     sound: "Sound",
+    soundHint: "◀▶ volume • OK: mute on / off",
     music: "Music",
     location: "Location",
     locationDescription: "Automatic weather location",
@@ -2200,6 +2202,7 @@ function updateVolumeInfo() {
       const muted = tizen.tvaudiocontrol.isMute();
 
       setStatus("volume", volume + "%", "ok");
+      setMetricBar("volumeBar", volume);
       setStatus(
         "mute",
         (muted ? "Sessiz mod açık • " : "Sessiz mod kapalı • ") +
@@ -2211,10 +2214,12 @@ function updateVolumeInfo() {
     }
 
     setStatus("volume", "TV API yok", "warn");
+    setMetricBar("volumeBar", 0);
     setStatus("mute", "Ses bilgisi gerçek TV'de görünür", "warn");
     updateSoundDetails();
   } catch (e) {
     setStatus("volume", "Okunamadı", "bad");
+    setMetricBar("volumeBar", 0);
     setStatus("mute", "Ses bilgisi alınamadı", "bad");
     updateSoundDetails();
   }
@@ -4446,6 +4451,20 @@ function setupRemoteKeys() {
 
     if (youtubeOverlayOpen) {
       if (handleYoutubeOverlayKey(key)) event.preventDefault();
+      return;
+    }
+
+    // Ses karti odakliyken sag/sol tuslari gezinme yerine TV sesini ayarlar.
+    const focused = document.activeElement;
+    if (
+      (key === 37 || key === 39) &&
+      focused &&
+      focused.classList &&
+      focused.classList.contains("soundCard") &&
+      canControlTvAudio()
+    ) {
+      event.preventDefault();
+      adjustTvVolume(key === 39 ? 1 : -1);
       return;
     }
 
