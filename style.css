@@ -6,6 +6,31 @@
   --blur: 8px;
   --radius: 18px;
   --muted: rgba(255, 255, 255, 0.72);
+
+  /* Vurgu rengi arka plan temasindan gelir: metrik cubuklari da ona uyar. */
+  --accent: rgba(120, 170, 255, 0.95);
+  --accent-soft: rgba(176, 206, 255, 0.95);
+  /* Uyari/kritik anlamini korur, sadece tonu temaya yaklastirilir. */
+  --warn: rgba(255, 196, 112, 0.95);
+  --warn-soft: rgba(255, 222, 164, 0.95);
+  --bad: rgba(255, 136, 136, 0.95);
+  --bad-soft: rgba(255, 184, 184, 0.95);
+}
+
+body.time-night {
+  --accent: rgba(96, 136, 228, 0.95);
+  --accent-soft: rgba(150, 180, 242, 0.95);
+}
+
+body.weather-rain,
+body.weather-snow {
+  --accent: rgba(104, 156, 226, 0.95);
+  --accent-soft: rgba(158, 194, 240, 0.95);
+}
+
+body.weather-clear:not(.time-night) {
+  --accent: rgba(255, 205, 120, 0.95);
+  --accent-soft: rgba(255, 228, 170, 0.95);
 }
 
 * {
@@ -325,16 +350,16 @@ body.weather-clear:not(.time-night)::before {
   width: 0;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #8ed9ff, #b9ffcf);
+  background: linear-gradient(90deg, var(--accent), var(--accent-soft));
   transition: none;
 }
 
 .metricFill.warnFill {
-  background: linear-gradient(90deg, #ffd37a, #ffe8a3);
+  background: linear-gradient(90deg, var(--warn), var(--warn-soft));
 }
 
 .metricFill.badFill {
-  background: linear-gradient(90deg, #ff8f8f, #ffb4b4);
+  background: linear-gradient(90deg, var(--bad), var(--bad-soft));
 }
 
 .microValue {
