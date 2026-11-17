@@ -485,6 +485,12 @@ const systemSnapshot = {
   storage: null,
   temperature: null
 };
+
+// TV'lerde anlik yukselmeler normaldir; uyarinin acilmasi icin birkac
+// ardindan gelen okuma gerekir. Boylece "bir kere %80 oldu" diye
+// yanlis "Yogun" uyarisi cikmaz.
+const HEALTH_STREAK_LIMIT = 3;
+const healthStreak = { warning: 0, critical: 0 };
 const appAlerts = {
   system: null,
   weather: null
@@ -729,9 +735,6 @@ function setMetricBar(id, percent) {
   if (el.getAttribute("data-percent") === String(safePercent)) return;
   el.setAttribute("data-percent", String(safePercent));
   el.style.width = safePercent + "%";
-  el.classList.remove("warnFill", "badFill");
-  if (safePercent >= 90) el.classList.add("badFill");
-  else if (safePercent >= 75) el.classList.add("warnFill");
 }
 
 function updateHealthStatus() {
@@ -744,14 +747,24 @@ function updateHealthStatus() {
   });
 
   if (!values.length && typeof temperature !== "number") {
-    setStatus("healthStatus", "TV'de ölçülür", "warn");
+    healthStreak.critical = 0;
+    healthStreak.warning = 0;
+    setStatus("healthStatus", "TV'de ölçülür", "ok");
     setText("healthDetail", "Canlı sağlık verileri bekleniyor");
     setAppAlert("system", null);
     return;
   }
 
-  const critical = cpu >= 90 || ram >= 90 || storage >= 95 || temperature >= 80;
-  const warning = cpu >= 75 || ram >= 75 || storage >= 85 || temperature >= 65;
+  // TV'lerde 75-85% CPU/RAM ve 60-70°C normal calisma araligidir.
+  // Uyari ancak cok daha yuksek degerler birkac okuma boyunca surerse cikar.
+  const criticalNow = cpu >= 98 || ram >= 98 || storage >= 98 || temperature >= 88;
+  const warningNow = cpu >= 92 || ram >= 92 || temperature >= 78;
+
+  healthStreak.critical = criticalNow ? healthStreak.critical + 1 : 0;
+  healthStreak.warning = (warningNow || criticalNow) ? healthStreak.warning + 1 : 0;
+
+  const critical = healthStreak.critical >= HEALTH_STREAK_LIMIT;
+  const warning = !critical && healthStreak.warning >= HEALTH_STREAK_LIMIT;
 
   if (critical) {
     setStatus("healthStatus", "Kritik", "bad");
