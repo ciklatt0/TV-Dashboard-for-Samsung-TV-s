@@ -21,6 +21,14 @@ Fully navigable with the TV remote.
 └────────────────────┴────────────────────┴────────────────────┘
 ```
 
+## Screenshots
+
+<!-- Screenshot slots: replace with 2-3 images in docs/screenshots/
+![TV dashboard](docs/screenshots/dashboard-1.jpg)
+![TV dashboard](docs/screenshots/dashboard-2.jpg)
+![TV dashboard](docs/screenshots/dashboard-3.jpg)
+-->
+
 ## Installation
 
 **Requirements:** Visual Studio Code with the **Tizen Extension**
