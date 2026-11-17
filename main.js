@@ -96,6 +96,9 @@ const EN_DYNAMIC = {
   "Gerçek TV veya emülatörde görüntülenir": "Visible on a real TV or emulator",
   "Tarayıcı modu": "Browser mode",
   "Sistem bilgisi TV'de görünür": "System info is visible on TV",
+  "Bölge bilgisi bu modelde yok": "Region info unavailable on this model",
+  "Bölge bilgisi okunamadı": "Region info could not be read",
+  "Bölge bilgisi TV'de görünür": "Region info is visible on TV",
   "CPU bilgisi TV'de görünür": "CPU info is visible on TV",
   "CPU modeli bu modelde yok": "CPU model unavailable on this device",
   "CPU bilgisi okunamadı": "CPU info could not be read",
@@ -110,6 +113,10 @@ const EN_DYNAMIC = {
   "Fiziksel boyut bu modelde yok": "Physical size unavailable on this model",
   "Panel bilgisi okunamadı": "Panel info could not be read",
   "Panel bilgisi desteklenmiyor": "Panel info is not supported",
+  "Yenileme hızı TV'de görünür": "Refresh rate is visible on TV",
+  "Yenileme hızı bu modelde yok": "Refresh rate unavailable on this model",
+  "Yenileme hızı okunamadı": "Refresh rate could not be read",
+  "Yenileme hızı desteklenmiyor": "Refresh rate is not supported",
   "Çevrimdışı": "Offline",
   "Çevrimiçi": "Online",
   "Ağ geçidine bağlantı kurulamadı": "Could not reach the network gateway",
@@ -120,6 +127,10 @@ const EN_DYNAMIC = {
   "Wi‑Fi sinyali gerçek TV'de görünür": "Wi‑Fi signal is visible on a real TV",
   "Wi‑Fi bilgisi kullanılamıyor": "Wi‑Fi information unavailable",
   "Wi‑Fi bilgisi desteklenmiyor": "Wi‑Fi information is not supported",
+  "Ağ detayı TV'de görünür": "Network details are visible on TV",
+  "MAC: ": "MAC: ",
+  "Ethernet: ": "Ethernet: ",
+  "IPv6: ": "IPv6: ",
   "OK: başlat": "OK: start",
   "Bağlantı yok": "No connection",
   "Gecikme ölçülüyor...": "Measuring latency...",
@@ -142,6 +153,13 @@ const EN_DYNAMIC = {
   "Geçerli TV kaynağı": "Current TV source",
   "Kaynak bilgisi bu modelde yok": "Source information is unavailable on this model",
   "Gerçek TV'de HDMI / TV kaynağı görünür": "HDMI / TV source is visible on a real TV",
+  "Yayın: ": "Broadcast: ",
+  "Yayın sistemi TV'de görünür": "Broadcast system is visible on TV",
+  "Uydu (DVB-S/S2)": "Satellite (DVB-S/S2)",
+  "Kablo (DVB-C)": "Cable (DVB-C)",
+  "Karasal (DVB-T/T2)": "Terrestrial (DVB-T/T2)",
+  "Analog": "Analog",
+  "IPTV": "IPTV",
   "HDR / enerji bilgisi gerçek TV'de görünür": "HDR / energy information is visible on a real TV",
   "HDR destekli": "HDR supported",
   "HDR yok": "No HDR",
@@ -156,6 +174,18 @@ const EN_DYNAMIC = {
   "otomatik": "auto",
   "Ses bilgisi gerçek TV'de görünür": "Sound information is visible on a real TV",
   "Ses bilgisi alınamadı": "Sound information unavailable",
+  "Ses detayı TV'de görünür": "Sound details are visible on TV",
+  "Standart": "Standard",
+  "Müzik": "Music",
+  "Film": "Movie",
+  "Oyun": "Game",
+  "Net ses": "Clear voice",
+  "Mod: ": "Mode: ",
+  "Çıkış: ": "Output: ",
+  "Maks: %": "Max: %",
+  "Açık kalma: ": "Uptime: ",
+  "Uyku zamanlayıcı: ": "Sleep timer: ",
+  "Güç durumu TV'de görünür": "Power status is visible on TV",
   "Sessiz mod açık": "Muted",
   "Sessiz mod kapalı": "Sound on",
   "Açık": "Clear",
@@ -1423,6 +1453,18 @@ function getTizenVersion() {
   return getSystemCapability("http://tizen.org/feature/platform.version");
 }
 
+// webapis.tvinfo.getTvInfoValue() uzerinden güvenli sistem değeri okur.
+// Desteklenmeyen anahtarlar null döner; TV dışında sessizce geçilir.
+function readTvInfoValue(key) {
+  try {
+    if (window.webapis && webapis.tvinfo && typeof webapis.tvinfo.getTvInfoValue === "function") {
+      const value = webapis.tvinfo.getTvInfoValue(key);
+      return value === null || value === undefined || value === "" ? null : value;
+    }
+  } catch (e) {}
+  return null;
+}
+
 function updateTvInfo() {
   const model = callProductInfo("getModel");
   const modelCode = callProductInfo("getModelCode");
@@ -1450,7 +1492,29 @@ function updateTvInfo() {
   setText("firmware", details.length ? details.join(" • ") : "Sistem bilgisi TV'de görünür");
 
   updateSystemDetails();
+  updateRegionInfo();
   updatePanelInfo();
+}
+
+function updateRegionInfo() {
+  const region = [];
+  const country = readTvInfoValue("COUNTRY") || callProductInfo("getCountry");
+  if (country) region.push(String(country).toUpperCase());
+
+  try {
+    if (window.tizen && tizen.systeminfo && tizen.systeminfo.getPropertyValue) {
+      tizen.systeminfo.getPropertyValue("TIME", function (time) {
+        const zone = time && (time.timezone || time.timeZone);
+        if (zone) region.push(String(zone));
+        setText("regionInfo", region.length ? region.join(" • ") : "Bölge bilgisi bu modelde yok");
+      }, function () {
+        setText("regionInfo", region.length ? region.join(" • ") : "Bölge bilgisi okunamadı");
+      });
+      return;
+    }
+  } catch (e) {}
+
+  setText("regionInfo", region.length ? region.join(" • ") : "Bölge bilgisi TV'de görünür");
 }
 
 function updateSystemDetails() {
@@ -1499,6 +1563,7 @@ function updateDisplayResolution() {
 
   setText("resolution", "Uygulama alanı: " + fallbackWidth + " × " + fallbackHeight);
   setText("panelSize", "Fiziksel panel TV'de görünür");
+  setText("panelRefreshRate", "Yenileme hızı TV'de görünür");
   setText("brightness", "Parlaklık TV'de görünür");
 
   try {
@@ -1545,13 +1610,28 @@ function updateDisplayResolution() {
           "panelSize",
           physical.length ? physical.join(" • ") : "Fiziksel boyut bu modelde yok"
         );
+
+        const refresh = [];
+        if (typeof panel.refreshRate === "number" && panel.refreshRate > 0) {
+          refresh.push(Math.round(panel.refreshRate) + " Hz");
+        } else if (typeof panel.panelRefreshRate === "number" && panel.panelRefreshRate > 0) {
+          refresh.push(Math.round(panel.panelRefreshRate) + " Hz");
+        }
+        const gamut = readTvInfoValue("COLOR_GAMUT") || readTvInfoValue("PANEL_COLOR_GAMUT");
+        if (gamut) refresh.push(String(gamut));
+        setText(
+          "panelRefreshRate",
+          refresh.length ? refresh.join(" • ") : "Yenileme hızı bu modelde yok"
+        );
       }, function () {
         setText("panelSize", "Panel bilgisi okunamadı");
+        setText("panelRefreshRate", "Yenileme hızı okunamadı");
       });
       return;
     }
   } catch (e) {
     setText("panelSize", "Panel bilgisi desteklenmiyor");
+    setText("panelRefreshRate", "Yenileme hızı desteklenmiyor");
   }
 }
 
@@ -1624,6 +1704,43 @@ function updateNetworkInfo() {
   }
 
   updateWifiInfo(samsungState);
+  updateNetworkDetails(samsungState);
+}
+
+// MAC adresi, Ethernet hizi ve IPv6 durumunu güvenli sekilde okur.
+function updateNetworkDetails(networkState) {
+  const details = [];
+
+  try {
+    if (window.webapis && webapis.network && typeof webapis.network.getMacAddress === "function") {
+      const mac = webapis.network.getMacAddress();
+      if (mac) details.push("MAC: " + mac);
+    } else if (window.webapis && webapis.productinfo && typeof webapis.productinfo.getMacAddress === "function") {
+      const mac = webapis.productinfo.getMacAddress();
+      if (mac) details.push("MAC: " + mac);
+    }
+  } catch (e) {}
+
+  try {
+    if (networkState && networkState.typeName === "Ethernet") {
+      const speed = readTvInfoValue("ETHERNET_SPEED") || readTvInfoValue("NETWORK_ETHERNET_SPEED");
+      if (speed) details.push("Ethernet: " + speed);
+    }
+  } catch (e) {}
+
+  try {
+    if (window.webapis && webapis.network && typeof webapis.network.getIPv6Status === "function") {
+      const ipv6 = webapis.network.getIPv6Status();
+      if (ipv6 !== null && ipv6 !== undefined) {
+        details.push("IPv6: " + (ipv6 ? "açık" : "kapalı"));
+      }
+    }
+  } catch (e) {}
+
+  setText(
+    "networkDetails",
+    details.length ? details.join(" • ") : "Ağ detayı TV'de görünür"
+  );
 }
 
 function updateWifiInfo(networkState) {
@@ -1900,6 +2017,38 @@ function updateSourceInfo() {
   } catch (e) {
     updateConnectedVideoSources();
   }
+
+  updateBroadcastInfo();
+}
+
+// Sadece yayin sistemini (uydu/kablo/karasal) gosterir; kanal adi kullanilmaz.
+function updateBroadcastInfo() {
+  let system = readTvInfoValue("BROADCAST_SYSTEM") || readTvInfoValue("SATELLITE_SYSTEM");
+
+  if (!system) {
+    try {
+      if (window.webapis && webapis.tvchannel && typeof webapis.tvchannel.getCurrentChannel === "function") {
+        const channel = webapis.tvchannel.getCurrentChannel();
+        if (channel) {
+          const raw = channel.broadcastType || channel.channelType ||
+            channel.satellite || channel.signalSource || channel.system;
+          if (raw) system = String(raw);
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (system) {
+    const names = {
+      SATELLITE: "Uydu (DVB-S/S2)", DVB_S: "Uydu (DVB-S/S2)", DVB_S2: "Uydu (DVB-S/S2)",
+      CABLE: "Kablo (DVB-C)", DVB_C: "Kablo (DVB-C)",
+      TERRESTRIAL: "Karasal (DVB-T/T2)", DVB_T: "Karasal (DVB-T/T2)", DVB_T2: "Karasal (DVB-T/T2)",
+      ANALOG: "Analog", IPTV: "IPTV", IP: "IPTV"
+    };
+    setText("broadcastInfo", "Yayın: " + (names[system] || system));
+  } else {
+    setText("broadcastInfo", "Yayın sistemi TV'de görünür");
+  }
 }
 
 function updateHardwareInfo() {
@@ -1941,6 +2090,23 @@ function updateHardwareInfo() {
   }
 
   updateAvInfo();
+  updatePowerInfo();
+}
+
+// Uptime ve uyku zamanlayici durumunu desteklenen API'lerden okur.
+function updatePowerInfo() {
+  const details = [];
+  const uptime = readTvInfoValue("UPTIME") ||
+    readTvInfoValue("SYSTEM_UPTIME") ||
+    readTvInfoValue("POWER_ON_TIME");
+  if (uptime !== null) details.push("Açık kalma: " + String(uptime));
+
+  const sleep = readTvInfoValue("SLEEP_TIMER") || readTvInfoValue("SLEEP_TIMER_STATUS");
+  if (sleep !== null) {
+    details.push("Uyku zamanlayıcı: " + String(sleep));
+  }
+
+  setText("powerInfo", details.length ? details.join(" • ") : "Güç durumu TV'de görünür");
 }
 
 function updateAvInfo() {
@@ -2021,15 +2187,45 @@ function updateVolumeInfo() {
           (muted ? "OK: sesi aç" : "OK: sesi kapat"),
         muted ? "warn" : "ok"
       );
+      updateSoundDetails();
       return;
     }
 
     setStatus("volume", "TV API yok", "warn");
     setStatus("mute", "Ses bilgisi gerçek TV'de görünür", "warn");
+    updateSoundDetails();
   } catch (e) {
     setStatus("volume", "Okunamadı", "bad");
     setStatus("mute", "Ses bilgisi alınamadı", "bad");
+    updateSoundDetails();
   }
+}
+
+// Ses modu, cikis ve maksimum seviyeyi desteklenen API'lerden okur.
+function updateSoundDetails() {
+  const details = [];
+
+  try {
+    if (window.tizen && tizen.tvaudiocontrol && typeof tizen.tvaudiocontrol.getSoundMode === "function") {
+      const mode = String(tizen.tvaudiocontrol.getSoundMode());
+      const modeNames = {
+        STANDARD: "Standart", MUSIC: "Müzik", MOVIE: "Film", GAME: "Oyun",
+        CLEAR_VOICE: "Net ses", AMOLIFIED: "Amplify"
+      };
+      details.push("Mod: " + (modeNames[mode] || mode));
+    }
+  } catch (e) {}
+
+  const output = readTvInfoValue("AUDIO_OUTPUT") || readTvInfoValue("SOUND_OUTPUT");
+  if (output) details.push("Çıkış: " + String(output));
+
+  try {
+    if (window.tizen && tizen.tvaudiocontrol && typeof tizen.tvaudiocontrol.getMaxVolume === "function") {
+      details.push("Maks: %" + tizen.tvaudiocontrol.getMaxVolume());
+    }
+  } catch (e) {}
+
+  setText("soundDetails", details.length ? details.join(" • ") : "Ses detayı TV'de görünür");
 }
 
 function canControlTvAudio() {
