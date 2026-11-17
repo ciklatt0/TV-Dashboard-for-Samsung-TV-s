@@ -1,3 +1,11 @@
+:root {
+  --glass: rgba(16, 20, 30, 0.52);
+  --glass-soft: rgba(16, 20, 30, 0.32);
+  --line: rgba(255, 255, 255, 0.14);
+  --radius: 18px;
+  --muted: rgba(255, 255, 255, 0.68);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -121,39 +129,39 @@ body.weather-clear:not(.time-night)::before {
 /* Temel cam yuzey. Tum kartlar, paneller ve butonlar bu malzemeyi paylasir.
    Tek kaynak: --glass-bg / --glass-border / --glass-blur degiskenleri. */
 .glass {
-  background: rgba(14, 17, 25, 0.46);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--glass);
+  border: 1px solid var(--line);
   box-shadow: none;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 
 .topbar {
-  flex: 0 0 108px;
+  flex: 0 0 96px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   animation: none;
-  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
 }
 
 .timeArea {
-  min-width: 300px;
+  min-width: 280px;
 }
 
 #clock {
-  font-size: 58px;
+  font-size: 52px;
   font-weight: 600;
-  letter-spacing: -4px;
-  line-height: 0.95;
-  text-shadow: 0 12px 42px rgba(0, 0, 0, 0.35);
+  letter-spacing: -3px;
+  line-height: 1;
+  text-shadow: none;
 }
 
 #date {
-  margin-top: 7px;
-  font-size: 18px;
+  margin-top: 5px;
+  font-size: 16px;
   font-weight: 400;
-  opacity: 0.88;
+  opacity: 0.82;
 }
 
 .weatherBlock {
@@ -162,35 +170,41 @@ body.weather-clear:not(.time-night)::before {
 }
 
 #weatherTemp {
-  font-size: 44px;
+  font-size: 40px;
   font-weight: 600;
-  letter-spacing: -4px;
+  letter-spacing: -3px;
   line-height: 1;
-  text-shadow: 0 12px 42px rgba(0, 0, 0, 0.30);
+  text-shadow: none;
 }
 
 #weatherText {
-  margin-top: 5px;
-  font-size: 17px;
-  opacity: 0.9;
+  margin-top: 3px;
+  font-size: 15px;
+  opacity: var(--muted);
+}
+
+.weatherMeta {
+  margin-top: 7px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
 }
 
 .forecastStrip {
-  margin-top: 9px;
   display: flex;
-  justify-content: flex-end;
   font-size: 12px;
-  opacity: 0.82;
+  opacity: var(--muted);
 }
 
 .forecastStrip span + span {
-  margin-left: 15px;
+  margin-left: 14px;
 }
 
 .sunInfo {
-  margin-top: 5px;
-  font-size: 10px;
-  opacity: 0.65;
+  font-size: 11px;
+  opacity: 0.6;
+  white-space: nowrap;
 }
 
 .dashboard {
@@ -199,23 +213,24 @@ body.weather-clear:not(.time-night)::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 28px 0 24px;
+  padding: 24px 0 20px;
 }
 
 .infoColumn {
-  width: 480px;
+  width: 460px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
 .infoColumnRight {
+  width: 440px;
   text-align: right;
 }
 .card {
-  min-height: 112px;
-  border-radius: 20px;
-  padding: 17px 19px;
+  min-height: 96px;
+  border-radius: var(--radius);
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -224,11 +239,11 @@ body.weather-clear:not(.time-night)::before {
   transition: none;
   animation: none;
   /* Saydam yuzey uzerinde metin okunabilirligi icin yumusak golge. */
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .card + .card {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 /* Saydam kartlar da cam yuzey kullanir; sadece .glass'tan daha ince.
@@ -236,19 +251,19 @@ body.weather-clear:not(.time-night)::before {
    DIKKAT: bu kural :focus kurallarindan ONCE gelmemeli; ayni specificity'de
    sonraki kural kazanir ve odaklanma efekti ezilir. */
 .plainInfo {
-  min-height: 84px;
-  padding: 13px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  background: rgba(14, 17, 25, 0.30);
+  min-height: 72px;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--glass-soft);
   box-shadow: none;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  text-shadow: 0 3px 18px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
 
 .resourceCard {
-  min-height: 264px;
+  min-height: 180px;
 }
 
 .resourceHeading {
@@ -263,34 +278,41 @@ body.weather-clear:not(.time-night)::before {
 
 .resourceHeading strong {
   margin-left: 12px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+}
+
 .metricRow {
-  margin-top: 9px;
+  min-width: 0;
 }
 
 .metricHeader {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.76);
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 11px;
+  color: var(--muted);
 }
 
 .metricHeader strong {
-  margin-left: 14px;
+  margin-top: 2px;
   color: white;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .metricTrack {
-  height: 5px;
-  margin-top: 5px;
+  height: 4px;
+  margin-top: 6px;
   overflow: hidden;
-  border-radius: 5px;
+  border-radius: 4px;
   background: rgba(255, 255, 255, 0.13);
 }
 
@@ -312,14 +334,14 @@ body.weather-clear:not(.time-night)::before {
 }
 
 .microValue {
-  margin-top: 6px;
-  font-size: 11px;
-  line-height: 1.25;
-  color: rgba(255, 255, 255, 0.62);
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--muted);
 }
 
 .hardwareValues {
-  margin-top: 6px;
+  margin-top: 5px;
   display: flex;
   justify-content: flex-start;
   font-size: 11px;
@@ -328,15 +350,15 @@ body.weather-clear:not(.time-night)::before {
 }
 
 .hardwareValues span + span {
-  margin-left: 16px;
+  margin-left: 14px;
 }
 
 .infoColumnRight .plainInfo {
-  min-height: 70px;
+  min-height: 64px;
 }
 
 .musicCard {
-  min-height: 148px;
+  min-height: 130px;
 }
 
 .musicProgress {
@@ -413,27 +435,6 @@ body.weather-clear:not(.time-night)::before {
   transition: none;
 }
 
-.card:nth-child(1) { animation-delay: 60ms; }
-.card:nth-child(2) { animation-delay: 100ms; }
-.card:nth-child(3) { animation-delay: 140ms; }
-.card:nth-child(4) { animation-delay: 180ms; }
-.card:nth-child(5) { animation-delay: 220ms; }
-.card:nth-child(6) { animation-delay: 260ms; }
-.card:nth-child(7) { animation-delay: 300ms; }
-.card:nth-child(8) { animation-delay: 340ms; }
-
-.youtubeColumn {
-  width: 560px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.youtubePlayerCard {
-  min-height: 370px;
-  padding: 16px 18px;
-}
-
 .youtubeCardHeader {
   display: flex;
   align-items: center;
@@ -453,10 +454,7 @@ body.weather-clear:not(.time-night)::before {
 .youtubeViewport {
   position: relative;
   width: 100%;
-  height: 294px;
-  margin-top: 10px;
   overflow: hidden;
-  border-radius: 14px;
   background: #080808;
 }
 
@@ -469,7 +467,10 @@ body.weather-clear:not(.time-night)::before {
 
 .youtubePreview {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 0;
   width: 100%;
   height: 100%;
@@ -542,15 +543,6 @@ body.weather-clear:not(.time-night)::before {
   opacity: 0.62;
 }
 
-.youtubeSearchCard {
-  min-height: 82px;
-  margin-top: 10px;
-  padding: 12px 18px;
-}
-
-.youtubeSearchCard .value {
-  font-size: 18px;
-}
 /* Odaklanan kart ayni cam yuzeyi korur, yalnizca biraz daha isiklanir ve
    kenarligi belirginlesir. Beyaz katman okunabilirligi bozmamasi icin dusuk
    tutulur.
@@ -581,23 +573,23 @@ body.weather-clear:not(.time-night)::before {
 }
 
 .miniLabel {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  opacity: 0.72;
-  margin-bottom: 6px;
+  opacity: 0.7;
+  margin-bottom: 4px;
 }
 
 .value {
-  font-size: 21px;
+  font-size: 20px;
   font-weight: 600;
   line-height: 1.15;
   word-break: break-word;
 }
 
 .subValue {
-  margin-top: 6px;
+  margin-top: 4px;
   font-size: 12px;
-  opacity: 0.72;
+  opacity: 0.74;
   line-height: 1.25;
 }
 
@@ -616,27 +608,13 @@ body.weather-clear:not(.time-night)::before {
 /* Overlay perdeleri: hepsi ayni karartma ve ayni blur. Panel, kartlarla
    ayni cam yuzeyi tasidigi icin perde hafif tutulur; arka plan medyasi
    panelin ardindan sisli gorunur. */
-.settingsOverlay {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.52);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-}
+.settingsOverlay,
 .languageOverlay {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -644,6 +622,9 @@ body.weather-clear:not(.time-night)::before {
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
 }
+
+.settingsOverlay { z-index: 10; }
+.languageOverlay { z-index: 20; }
 
 
 /* Overlay panelleri kartlarla ayni cam yuzeyi paylasir. Arka plan medyasi
@@ -1009,39 +990,6 @@ body.weather-clear:not(.time-night)::before {
 .warn { color: #ffe8a3; }
 .bad { color: #ffb4b4; }
 
-@keyframes floatIn {
-  from {
-    opacity: 0;
-    transform: translateY(18px) scale(0.985);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes cardIn {
-  from {
-    opacity: 0;
-    transform: translateY(26px) scale(0.975);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes footerIn {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 0.82;
-    transform: translateY(0);
-  }
-}
-
 /* Eski TV WebKit motorları için düşük güç çizim yolu. */
 body::before,
 body.time-night::before,
@@ -1148,9 +1096,13 @@ body.weather-clear:not(.time-night)::before {
     font-size: 9px;
   }
 
-  .forecastStrip {
+  .weatherMeta {
     margin-top: 5px;
-    font-size: 8px;
+    gap: 10px;
+  }
+
+  .forecastStrip {
+    font-size: 9px;
   }
 
   .forecastStrip span + span {
@@ -1158,8 +1110,7 @@ body.weather-clear:not(.time-night)::before {
   }
 
   .sunInfo {
-    margin-top: 3px;
-    font-size: 8px;
+    font-size: 9px;
   }
 
   .musicCard {
@@ -1176,27 +1127,26 @@ body.weather-clear:not(.time-night)::before {
   }
 
   .musicTime {
-    font-size: 8px;
+    font-size: 10px;
   }
 
-  .youtubeColumn {
-    width: 460px;
+  .metricGrid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    margin-top: 8px;
   }
 
-  .youtubePlayerCard {
-    min-height: 300px;
-    padding: 12px 14px;
+  .metricHeader {
+    flex-direction: row;
+    align-items: baseline;
   }
 
-  .youtubeViewport {
-    height: 233px;
-    margin-top: 7px;
+  .metricHeader strong {
+    margin-top: 0;
+    margin-left: 12px;
+    font-size: 12px;
   }
 
-  .youtubeSearchCard {
-    min-height: 64px;
-    padding: 8px 14px;
-  }
   .youtubePanel {
     width: 900px;
     max-height: 88vh;
@@ -1248,13 +1198,14 @@ body .youtubePlayerCard {
   bottom: 58px;
   z-index: 7;
   display: none;
-  width: 360px;
+  width: 340px;
   min-height: 0;
-  margin: 0 0 0 -180px;
+  margin: 0 0 0 -170px;
   padding: 12px;
   justify-content: flex-start;
-  border-radius: 18px;
-  background: rgba(10, 12, 18, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(12, 15, 22, 0.9);
 }
 
 body.youtubeHasSelection .youtubePlayerCard {
@@ -1275,13 +1226,14 @@ body .youtubeMiniCard {
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  width: 330px;
-  min-height: 48px;
-  margin: 0 0 0 -165px;
+  width: 320px;
+  min-height: 46px;
+  margin: 0 0 0 -160px;
   padding: 8px 12px;
   gap: 10px;
-  border-radius: 16px;
-  background: rgba(10, 12, 18, 0.78);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(12, 15, 22, 0.82);
   text-align: left;
 }
 
@@ -1312,13 +1264,13 @@ body .youtubeMiniText {
 body .youtubeMiniText .miniLabel {
   display: block;
   margin: 0 0 1px;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 body .youtubeMiniText strong {
   display: block;
   overflow: hidden;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1326,17 +1278,17 @@ body .youtubeMiniText strong {
 
 body .youtubeMiniAction {
   flex: 0 0 auto;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   color: #b8ffc8;
 }
 
 body .youtubePlayerCard .youtubeCardHeader strong {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 body .youtubePlayerCard .youtubeViewport {
-  height: 200px;
+  height: 180px;
   margin-top: 7px;
   border-radius: 11px;
 }
@@ -1359,7 +1311,7 @@ body .youtubePlayerCard .youtubeMark {
 
 body .youtubePlayerCard .youtubeTitle {
   margin-top: 7px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 body .youtubeSearchCard {
@@ -1372,8 +1324,9 @@ body .youtubeSearchCard {
   min-height: 72px;
   margin: 0 0 0 -150px;
   padding: 10px 14px;
-  border-radius: 16px;
-  background: rgba(10, 12, 18, 0.88);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(12, 15, 22, 0.88);
 }
 
 body.youtubeHasSelection .youtubeSearchCard {
@@ -1390,7 +1343,7 @@ body .youtubeSearchCard .value {
 }
 
 body .youtubeSearchCard .subValue {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 @media (max-width: 1400px) {

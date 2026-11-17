@@ -38,12 +38,14 @@
       <div class="weatherBlock">
         <div id="weatherTemp">--°</div>
         <div id="weatherText">Hava durumu alınıyor...</div>
-        <div class="forecastStrip">
-          <span id="forecast0">--:-- --°</span>
-          <span id="forecast1">--:-- --°</span>
-          <span id="forecast2">--:-- --°</span>
+        <div class="weatherMeta">
+          <div class="forecastStrip">
+            <span id="forecast0">--:-- --°</span>
+            <span id="forecast1">--:-- --°</span>
+            <span id="forecast2">--:-- --°</span>
+          </div>
+          <div id="sunInfo" class="sunInfo">Gün doğumu / batımı alınıyor...</div>
         </div>
-        <div id="sunInfo" class="sunInfo">Gün doğumu / batımı alınıyor...</div>
       </div>
     </header>
 
@@ -71,28 +73,30 @@
           </div>
           <div id="healthDetail" class="microValue">Sistem sağlığı hesaplanıyor...</div>
 
-          <div class="metricRow">
-            <div class="metricHeader">
-              <span data-i18n="cpuUsage">CPU kullanımı</span>
-              <strong id="cpuValue">--%</strong>
+          <div class="metricGrid">
+            <div class="metricRow">
+              <div class="metricHeader">
+                <span data-i18n="cpuUsage">CPU kullanımı</span>
+                <strong id="cpuValue">--%</strong>
+              </div>
+              <div class="metricTrack"><span id="cpuBar" class="metricFill"></span></div>
             </div>
-            <div class="metricTrack"><span id="cpuBar" class="metricFill"></span></div>
-          </div>
 
-          <div class="metricRow">
-            <div class="metricHeader">
-              <span>RAM</span>
-              <strong id="ramValue">Okunuyor...</strong>
+            <div class="metricRow">
+              <div class="metricHeader">
+                <span>RAM</span>
+                <strong id="ramValue">Okunuyor...</strong>
+              </div>
+              <div class="metricTrack"><span id="ramBar" class="metricFill"></span></div>
             </div>
-            <div class="metricTrack"><span id="ramBar" class="metricFill"></span></div>
-          </div>
 
-          <div class="metricRow">
-            <div class="metricHeader">
-              <span data-i18n="internalStorage">Dahili depolama</span>
-              <strong id="storageValue">Okunuyor...</strong>
+            <div class="metricRow">
+              <div class="metricHeader">
+                <span data-i18n="internalStorage">Dahili depolama</span>
+                <strong id="storageValue">Okunuyor...</strong>
+              </div>
+              <div class="metricTrack"><span id="storageBar" class="metricFill"></span></div>
             </div>
-            <div class="metricTrack"><span id="storageBar" class="metricFill"></span></div>
           </div>
 
           <div id="usbStorage" class="microValue">USB depolama aranıyor...</div>
