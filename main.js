@@ -2976,14 +2976,8 @@ function confirmYoutubePlayMode(playClip) {
   const audio = getEl("bgMusic");
   if (audio && !audio.paused) audio.pause();
   loadYoutubePlayer(selection, true);
-  setTimeout(function () {
-    const miniCard = document.querySelector(".youtubeMiniCard");
-    if (miniCard && miniCard.offsetWidth > 0 && miniCard.offsetHeight > 0) {
-      miniCard.focus();
-    } else {
-      focusFirstCard();
-    }
-  }, 0);
+  setTimeout(restoreDashboardFocus, 0);
+  setTimeout(restoreDashboardFocus, 250);
 }
 
 function renderYoutubeResults(items) {
@@ -3328,12 +3322,50 @@ function sendYoutubeIframePlayCommand(frame) {
   });
 }
 
-function restoreDashboardFocus() {
-  const active = document.activeElement;
-  if (active && active.tagName !== "IFRAME" && active.offsetWidth > 0 && active.offsetHeight > 0) {
-    return;
+// Video/iframe/avplay ogeleri klavyeyi yutar; odaklarini her zaman
+// dashboard kartlarina geri dondururuz. Ayar/arama/aciksa oraya dokunmayiz.
+function isMediaFocusTarget(element) {
+  if (!element || !element.tagName) return false;
+  if (/^(IFRAME|VIDEO|OBJECT|AUDIO)$/.test(element.tagName)) return true;
+  return !!(element.classList && element.classList.contains("bgMedia"));
+}
+
+function focusDashboardCard() {
+  const selectors = [
+    youtubeBackgroundActive ? ".youtubeMiniCard" : null,
+    youtubeSelection ? ".youtubePlayerCard" : null,
+    ".youtubeSearchCard",
+    ".card"
+  ];
+  for (let index = 0; index < selectors.length; index++) {
+    const selector = selectors[index];
+    if (!selector) continue;
+    const card = document.querySelector(selector);
+    if (!card || card.offsetWidth <= 0 || card.offsetHeight <= 0) continue;
+    try { card.focus({ preventScroll: true }); }
+    catch (e) { card.focus(); }
+    return card;
   }
-  focusFirstCard();
+  return null;
+}
+
+function restoreDashboardFocus() {
+  if (languageOpen || settingsOpen || youtubeOverlayOpen || youtubePlayModePromptOpen) return;
+
+  const active = document.activeElement;
+  const usableFocus =
+    active &&
+    active !== document.body &&
+    !isMediaFocusTarget(active) &&
+    active.offsetWidth > 0 &&
+    active.offsetHeight > 0 &&
+    (active.tagName === "INPUT" ||
+      active.tagName === "BUTTON" ||
+      active.tagName === "A" ||
+      (active.classList && active.classList.contains("card")));
+
+  if (usableFocus) return;
+  focusDashboardCard();
 }
 
 function scheduleYoutubeIframeAutoplay(frame) {
@@ -3457,6 +3489,8 @@ function playYoutubeHtmlVideoBackground(streamUrl, thumbnail, selection, renderT
     setStatus("youtubeStatus", "YouTube video oynuyor", "ok");
     updateFooter("YouTube video oynuyor");
     updateMediaScreenSaver();
+    setTimeout(restoreDashboardFocus, 0);
+    setTimeout(restoreDashboardFocus, 250);
   };
   video.onerror = function () {
     if (renderToken !== youtubeBackgroundRequestToken || !youtubeBackgroundActive) return;
@@ -3503,6 +3537,8 @@ function playYoutubeAvplayBackground(streamUrl, thumbnail, renderToken, onFailur
     setStatus("youtubeStatus", "YouTube video oynuyor", "ok");
     updateFooter("YouTube video oynuyor");
     updateMediaScreenSaver();
+    setTimeout(restoreDashboardFocus, 0);
+    setTimeout(restoreDashboardFocus, 250);
   }
 
   image.src = thumbnail;
@@ -3555,6 +3591,7 @@ function replaceYoutubePlayerWithIframe(src) {
   const iframe = document.createElement("iframe");
   iframe.id = "youtubePlayer";
   iframe.src = src;
+  iframe.tabIndex = -1;
   iframe.title = youtubeSelection && youtubeSelection.title ? youtubeSelection.title : "YouTube player";
   iframe.referrerPolicy = "strict-origin-when-cross-origin";
   iframe.allow = "autoplay; encrypted-media; fullscreen; picture-in-picture";
@@ -3599,6 +3636,8 @@ function loadYoutubeEmbedFallbackPlayer(selection, autoplay, fallbackIndex) {
       sendYoutubeIframePlayCommand(iframe);
       scheduleYoutubeIframeAutoplay(iframe);
     }
+    setTimeout(restoreDashboardFocus, 0);
+    setTimeout(restoreDashboardFocus, 250);
   };
   iframe.onerror = function () {
     if (!loadYoutubeEmbedFallbackPlayer(selection, autoplay, index + 1)) {
@@ -3785,6 +3824,7 @@ function startYoutubeEmbedBackground(selection, autoplay, fallbackIndex, showCli
     sendYoutubeIframePlayCommand(background);
     scheduleYoutubeIframeAutoplay(background);
     setTimeout(restoreDashboardFocus, 0);
+    setTimeout(restoreDashboardFocus, 250);
   };
   background.onerror = function () {
     startYoutubeEmbedBackground(selection, autoplay, index + 1, shouldShowClip);
@@ -3794,6 +3834,7 @@ function startYoutubeEmbedBackground(selection, autoplay, fallbackIndex, showCli
     sendYoutubeIframePlayCommand(background);
     scheduleYoutubeIframeAutoplay(background);
     setTimeout(restoreDashboardFocus, 0);
+    setTimeout(restoreDashboardFocus, 250);
   }
 
   setStatus("youtubeStatus", shouldShowClip ? "YouTube arka planda" : "YouTube ses çalıyor", "ok");
@@ -4365,6 +4406,19 @@ function moveCardFocus(keyCode) {
 
 function setupRemoteKeys() {
   registerRemoteKeys();
+
+  // Klip/YouTube oynatıcı odagi ele gecirirse tuşlar orada kaybolmasin.
+  document.addEventListener("focusin", function (event) {
+    if (!isMediaFocusTarget(event.target)) return;
+    try { event.target.blur(); } catch (e) {}
+    setTimeout(function () {
+      if (youtubeOverlayOpen) {
+        const input = getEl("youtubeSearchInput");
+        if (input && !input.hidden) { input.focus(); return; }
+      }
+      restoreDashboardFocus();
+    }, 0);
+  });
 
   document.addEventListener("keydown", function (event) {
     const key = event.keyCode;
