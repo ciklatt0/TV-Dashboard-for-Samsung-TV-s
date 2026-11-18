@@ -1,4 +1,9 @@
-# TV Dashboard YouTube Relay (Cloudflare Worker)
+# TV Dashboard YouTube Relay (Cloudflare Worker) — optional
+
+> Bu klasör **opsiyoneldir**. TV Dashboard'un çalışması için gerekli değildir;
+> uygulama varsayılan olarak herkese açık yedek relay ve YouTube/Piped
+> fallback'leriyle çalışır. Buradaki Worker yalnızca kendi altyapısını kurmak
+> isteyenler için referans örnektir.
 
 TV Dashboard'un Tizen tarafında güvenilir biçimde açamadığı YouTube embed'ini
 sağlayan küçük bir HTTPS.origin katmanı. Video akışı **bu Worker'dan geçmez**;

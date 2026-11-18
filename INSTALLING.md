@@ -432,7 +432,6 @@ https://get.geojs.io
 https://ipwho.is
 https://api.piped.private.coffee
 https://piped.private.coffee
-https://workers.dev
 https://tvdash-youtube-relay.windows-destekleyeci.chatgpt.site
 https://youtube.com
 https://youtube-nocookie.com
@@ -441,9 +440,9 @@ https://googlevideo.com
 ```
 
 Adding a new API means adding its origin there too. The YouTube entries cover
-search (`api.piped.private.coffee`), the embed relay (`workers.dev` plus the
-backup relay), YouTube's own embed hosts and the video/thumbnail CDNs. See
-`youtube-relay/README.md` for deploying your own Cloudflare relay.
+search (`api.piped.private.coffee`), the public backup relay, YouTube's own
+embed hosts and the video/thumbnail CDNs. No personal Cloudflare account or
+worker is required.
 
 ---
 

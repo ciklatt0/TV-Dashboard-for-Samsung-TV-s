@@ -343,16 +343,13 @@ const YOUTUBE = {
       endpoint: "https://api.piped.private.coffee/search"
     }
   ],
-  // Cloudflare Worker relay adresleri. İlk satırı kendi worker adresinle
-  // değiştir; "REPLACE-WITH-YOUR-WORKER" içeren girdiler çalışma anında atlanır.
-  // Ayarlar panelinden "Otomatik" dışındaki bir relay seçilebilir.
+  // relayUrls herkese acik, kisisel hesaba bagli olmayan adreslerdir.
+  // Bu projeyi kullanan hic kimsenin kendi Cloudflare/worker'ini kurmasi gerekmez.
   relayOptions: [
     { label: "Otomatik", value: "" },
-    { label: "Cloudflare", value: "https://REPLACE-WITH-YOUR-WORKER.workers.dev" },
     { label: "Yedek relay", value: "https://tvdash-youtube-relay.windows-destekleyeci.chatgpt.site" }
   ],
   relayUrls: [
-    "https://REPLACE-WITH-YOUR-WORKER.workers.dev",
     "https://tvdash-youtube-relay.windows-destekleyeci.chatgpt.site"
   ],
   // Tizen file:// origin'i YouTube için geçerli değildir; son "?origin="

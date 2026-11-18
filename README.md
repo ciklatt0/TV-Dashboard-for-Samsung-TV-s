@@ -182,19 +182,14 @@ selected/active relays  →  Piped embed  →  youtube-nocookie  →  youtube.co
 
 Settings → **YouTube relay** picks the active source:
 
-- **Otomatik** — try every configured relay in order, then the fallbacks.
-- **Cloudflare** — force your own Worker (set its URL in `YOUTUBE.relayOptions`).
+- **Otomatik** — try the public relay, then the fallbacks.
 - **Yedek relay** — force the community backup relay.
 
 If the relay is down, a video that is already playing keeps running; only
 opening a *new* video is affected, and it automatically drops to the next
-fallback. Because search and streaming are direct, your own domain is never a
-single point of failure — it only serves a tiny HTML page.
-
-Deploy your own relay with the included Cloudflare Worker; see
-[youtube-relay/README.md](youtube-relay/README.md). After deploying, replace
-the `REPLACE-WITH-YOUR-WORKER` placeholder in `main.js` with your real
-`workers.dev` address.
+fallback. No account, Cloudflare Worker or personal domain is required — the
+app works for anyone who installs it. The `youtube-relay/` folder is only an
+optional reference implementation and is not needed at runtime.
 
 ### Performance
 
@@ -300,12 +295,11 @@ INSTALLING.md       Installation tutorial
 bg*.mp4 / bg*.jpg   Background media files (1080p30, compressed)
 music-tv.mp3        Bundled music
 tools/              Maintenance and verification scripts
-youtube-relay/      Cloudflare Worker (embed relay) + tests + deploy guide
+youtube-relay/      Optional reference relay (not needed at runtime)
 ```
 
-No build system is needed for the app itself. `youtube-relay/` is only needed
-if you want to host your own relay; it has a separate `package.json` for
-Wrangler.
+No build system is needed for the app itself. `youtube-relay/` is only an
+optional reference; the dashboard does not depend on it.
 
 ## License
 
